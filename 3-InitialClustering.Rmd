@@ -1,0 +1,124 @@
+---
+title: "Integrating Data"
+author: Alina Kline-Schoder
+date: | 
+      | Started on 04/19/2021
+      | Compiled: `r format(Sys.Date(), "%B %d, %Y")`
+output:
+  github_document:
+    toc: yes
+  pdf_document:
+    toc: yes
+  html_notebook:
+    df_print: paged
+    highlight: tango
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_float: yes
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: no
+editor_options:
+  chunk_output_type: inline
+always_allow_html: yes
+---
+# Integrating all data
+
+```{r message = FALSE, echo = FALSE}
+rm(list = ls())
+library(Seurat)
+require(ggdendro)
+require(Rmisc)
+library(Matrix)
+library(MASS)
+library(xtable)
+library(Matrix.utils)
+library(reshape2)
+library(BiocManager)
+library(rhdf5)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(rstatix)
+library(ggpmisc)
+library(gridExtra)
+library(here)
+options(future.globals.maxSize = 4000 * 1024^5)
+setwd("F:/Data/Sequencing/SavedData/")
+load("2-Integrating.RData")
+```
+  
+
+# QC, RPCA Integration
+```{r Integrating Hashing and Run0}
+DefaultAssay(Integrated)<-"integrated"
+Integrated <- ScaleData(Integrated)
+Integrated <- RunPCA(Integrated)
+Integrated <- FindNeighbors(Integrated, dims = 1:30)
+Integrated <- FindClusters(Integrated, resolution = 0.2)
+Integrated <- RunUMAP(Integrated, dims = 1:30,metric = "euclidean")
+
+Integrated$cell_type <- recode(Integrated$seurat_clusters,
+                               "11"="Unclear",
+                               "10"="Unclear",
+                               "9"="Unclear",
+                               "8"="Microglia",
+                               "7"="CAM",
+                               "6"="Microglia",
+                               "5"="Microglia",
+                               "4"="Microglia",
+                               "3"="Microglia",
+                               "2"="CAM",
+                               "1"="Microglia",
+                               "0"="Microglia")
+Integrated$cluster_number <- recode(Integrated$seurat_clusters,
+                               "11"="11",
+                               "10"="10",
+                               "9"="9",
+                               "8"="6",
+                               "7"="8",
+                               "6"="5",
+                               "5"="4",
+                               "4"="3",
+                               "3"="2",
+                               "2"="7",
+                               "1"="1",
+                               "0"="0")
+
+Integrated$cluster_number<-ordered(Integrated$cluster_number,levels=c("0","1","2","3","4","5","6","7","8","9","10","11"))
+
+Integrated$cluster_full <- recode(Integrated$seurat_clusters,
+                               "11"="11: Unclear 3 (33)",
+                               "10"="10: Unclear 2 (55)",
+                               "9"="9: Unclear 1 (89)",
+                               "8"="6: Microglia 7 (111)",
+                               "7"="8: CAM 2 (228)",
+                               "6"="5: Microglia 6 (344)",
+                               "5"="4: Microglia 5 (622)",
+                               "4"="3: Microglia 4 (981)",
+                               "3"="2: Microglia 3 (1033)",
+                               "2"="7: CAM 1 (1059)",
+                               "1"="1: Microglia 2 (3491)",
+                               "0"="0: Microglia 1 (7615)")
+
+```
+
+```{r}
+Idents(Integrated)<-"cell_type"
+Microglia <- subset(Integrated,idents="Microglia")
+CAM <- subset(Integrated,idents="CAM")
+```
+
+```{r Saving}
+setwd("F:/Data/Sequencing/SavedData/")
+save(CAM,file = "3-CAM.RData")
+save(Microglia,file = "3-Microglia.RData")
+save(Integrated,file = "3-AllCells.RData")
+```
+

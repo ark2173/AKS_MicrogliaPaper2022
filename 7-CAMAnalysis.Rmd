@@ -47,9 +47,9 @@ CAM<-ScaleData(CAM)
 DefaultAssay(CAM)<-"integrated"
 CAM <- ScaleData(CAM)
 CAM <- RunPCA(CAM)
-CAM <- FindNeighbors(CAM, dims = 1:10)
+CAM <- FindNeighbors(CAM, dims = 1:15)
 CAM <- FindClusters(CAM, resolution = 0.1)
-CAM <- RunUMAP(CAM, dims = 1:10,metric = "euclidean")
+CAM <- RunUMAP(CAM, dims = 1:15,metric = "euclidean")
 DimPlot(CAM)
 ```
 
@@ -193,7 +193,7 @@ Onto_3d<-Onto_3d[Onto_3d$Significant>1,]
 ```
 
 
-# Saving for figures - Microglia DEG
+# Saving for figures
 ```{r}
 setwd("F:/Data/Sequencing/SavedData")
 save(CAM,Onto_1d,Onto_3d,Markers_3d,Markers_1d,CAM_Treatment_Markers,file="7-CAMFigure.RData")

@@ -34,6 +34,10 @@ library(rstatix)
 library(ggpmisc)
 library(gridExtra)
 library(here)
+library(RColorBrewer)
+library(sjmisc)
+library(ggrepel)
+library(ComplexHeatmap)
 setwd("F:/Data/Sequencing/SavedData")
 load("7-CAMFigure.RData")
 load("3-AllCells.RData")
@@ -44,7 +48,7 @@ CAM$clusters_labeled<-recode(CAM$seurat_clusters,
                      "2"="Mrc1+",
                      "0"="Ccl2+")
 ColorsTreatment<-c("#FFFFFF","#A3A3A3","#75A0B2","#205F83")
-ColorMacrophageClusters<-brewer.pal(3,"Set1")
+ColorMacrophageClusters<-c("#e07a5f","#3d405b","#81b29a")
 names(ColorMacrophageClusters)<-levels(CAM$clusters_labeled)
 ColorPhase<-rev(c("#E1E1E1",brewer.pal(5,"Pastel2")))
 library(circlize)
@@ -81,7 +85,7 @@ Dim1<-DimPlot(CAM,group.by = "clusters_labeled",label=FALSE,cols = ColorMacropha
                                                                                                                  legend.text = element_text(size=8),
         legend.key.size = unit(0.1,"mm"),
         legend.spacing = unit(0,"mm"),
-        legend.position = c(0.3,0.05))+guides(color=guide_legend(override.aes = list(size=4),nrow=1))+scale_y_continuous(expand=c(0,2))
+        legend.position = c(0.3,1))+guides(color=guide_legend(override.aes = list(size=4),nrow=1))+scale_y_continuous(limits=c(-6.5,5))+scale_x_continuous(limits=c(-5,7))
 ```
 
 
@@ -285,12 +289,12 @@ Pie<-ggplot(df, aes(x=Var1, y=Freq_Norm, fill=Var1)) +
 
 # Putting it all together
 ```{r}
-Inset<-ggdraw(Dim1 + ylim(-9.5,7.51)+theme_half_open(12) + theme(plot.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),legend.position = c(0,0.1))) +
-  draw_plot(Highlight, .625, .625, .375, .375) +
+Inset<-ggdraw(Dim1 + theme_half_open(12) + theme(plot.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),legend.position = c(0,0.1))) +
+  draw_plot(Highlight, .7, .7, .3, .3) +
   draw_plot_label(
-    c("B"),
-    c(0.66),
+    c("b"),
     c(0.75),
+    c(0.985),
     size = 12)
 Top<-plot_grid(Inset,Pie,BC3,nrow=1,align = "h",axis = "t",labels = c("A","C"))
 A<-plot_grid(HM_Ready,plot_grid(Feat,Volcanos,OntPlot,nrow=3,labels = c("G","","J")),nrow=1,labels = c("F"))

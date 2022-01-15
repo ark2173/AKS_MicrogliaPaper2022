@@ -1,0 +1,149 @@
+---
+title: "1-Demultiplexing"
+author: "Alina Kline-Schoder"
+date: "1/11/2022"
+output: 
+    github_document:
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+library(Seurat)
+HashID<-read.csv('F:/Data/Sequencing/Files/DONOTDELETE-HashingCode.csv',row.names = 1)
+```
+
+# Loading
+
+```{r Run1}
+Raw <- Read10X(data.dir = "F:/Data/Sequencing/CellRangerOuts/EA001/filtered_feature_bc_matrix")
+EA001 <- CreateSeuratObject(counts = Raw, project = "EA001")
+EA001[["percent.mt"]] <- PercentageFeatureSet(EA001,pattern = "^mt-")
+EA001[["percent.ribo"]] <- PercentageFeatureSet(EA001,pattern = "^Rp")
+EA001$Treatment<-"Sham"
+EA001$Treatment_Specific<-"1d MB Sham"
+```
+
+```{r Run2}
+Raw <- Read10X(data.dir = "F:/Data/Sequencing/CellRangerOuts/EA002/filtered_feature_bc_matrix")
+EA002 <- CreateSeuratObject(counts = Raw, project = "EA002")
+EA002[["percent.mt"]] <- PercentageFeatureSet(EA002,pattern = "^mt-")
+EA002[["percent.ribo"]] <- PercentageFeatureSet(EA002,pattern = "^Rp")
+EA002$Treatment<-"1d BBBO"
+EA002$Treatment_Specific<-"1d BBBO"
+```
+
+```{r Hash1}
+Raw <- Read10X(data.dir = "F:/Data/Sequencing/CellRangerOuts/EA003/filtered_feature_bc_matrix")
+Seurat <- CreateSeuratObject(counts = Raw, project = "EA003")
+Seurat[["percent.mt"]] <- PercentageFeatureSet(Seurat,pattern = "^mt-")
+
+Hashing <- as.data.frame(Read10X(data.dir="F:/Data/Sequencing/CellRangerOuts/EA003F/raw_feature_bc_matrix/"))
+Hashing <- Hashing[,colSums(Hashing)>0]
+
+umis<-Seurat@assays$RNA@data@Dimnames[[2]]
+joint<-intersect(umis,colnames(Hashing))
+Hashing<-Hashing[,joint]
+Seurat<-subset(Seurat,cells = joint)
+Seurat[["HTO"]]<-CreateAssayObject(counts = Hashing)
+Seurat <- NormalizeData(Seurat, assay = "HTO", normalization.method = "CLR")
+Seurat <- HTODemux(Seurat, assay = "HTO", positive.quantile = 0.99)
+table(Seurat$HTO_classification.global)
+Idents(Seurat)<-"HTO_classification.global"
+EA003<-subset(Seurat, idents = "Singlet", invert = FALSE)
+EA003$hash.ID<-droplevels(EA003$hash.ID)
+EA003$Treatment_Specific<-recode(EA003$hash.ID,
+                        "TotalSeqB-Hashtag1"="Naive",
+                        "TotalSeqB-Hashtag2"="1d BBBO",
+                        "TotalSeqB-Hashtag3"="1d FUS Sham",
+                        "TotalSeqB-Hashtag4"="1d MB Sham",
+                        "TotalSeqB-Hashtag5"="3d MB Sham",
+                        "TotalSeqB-Hashtag6"="3d FUS Sham",
+                        "TotalSeqB-Hashtag7"="3d BBBO")
+EA003$Treatment<-recode(EA003$hash.ID,
+                        "TotalSeqB-Hashtag1"="Naive",
+                        "TotalSeqB-Hashtag2"="1d BBBO",
+                        "TotalSeqB-Hashtag3"="Sham",
+                        "TotalSeqB-Hashtag4"="Sham",
+                        "TotalSeqB-Hashtag5"="Sham",
+                        "TotalSeqB-Hashtag6"="Sham",
+                        "TotalSeqB-Hashtag7"="3d BBBO")
+```
+
+```{r Hash2}
+Raw <- Read10X(data.dir = "F:/Data/Sequencing/CellRangerOuts/EA004/filtered_feature_bc_matrix")
+Seurat <- CreateSeuratObject(counts = Raw, project = "EA004")
+Seurat[["percent.mt"]] <- PercentageFeatureSet(Seurat,pattern = "^mt-")
+
+Hashing <- as.data.frame(Read10X(data.dir="F:/Data/Sequencing/CellRangerOuts/EA004F/raw_feature_bc_matrix/"))
+Hashing <- Hashing[,colSums(Hashing)>0]
+
+umis<-Seurat@assays$RNA@data@Dimnames[[2]]
+joint<-intersect(umis,colnames(Hashing))
+Hashing<-Hashing[,joint]
+Seurat<-subset(Seurat,cells = joint)
+Seurat[["HTO"]]<-CreateAssayObject(counts = Hashing)
+Seurat <- NormalizeData(Seurat, assay = "HTO", normalization.method = "CLR")
+Seurat <- HTODemux(Seurat, assay = "HTO", positive.quantile = 0.99)
+table(Seurat$HTO_classification.global)
+Idents(Seurat)<-"HTO_classification.global"
+EA004<-subset(Seurat, idents = "Singlet", invert = FALSE)
+EA004$hash.ID<-droplevels(EA004$hash.ID)
+EA004$Treatment_Specific<-recode(EA004$hash.ID,
+                        "TotalSeqB-Hashtag1"="Naive",
+                        "TotalSeqB-Hashtag2"="1d FUS Sham",
+                        "TotalSeqB-Hashtag3"="1d MB Sham",
+                        "TotalSeqB-Hashtag4"="1d BBBO",
+                        "TotalSeqB-Hashtag5"="3d MB Sham",
+                        "TotalSeqB-Hashtag6"="3d FUS Sham",
+                        "TotalSeqB-Hashtag7"="3d BBBO")
+EA004$Treatment<-recode(EA004$hash.ID,
+                        "TotalSeqB-Hashtag1"="Naive",
+                        "TotalSeqB-Hashtag2"="Sham",
+                        "TotalSeqB-Hashtag3"="Sham",
+                        "TotalSeqB-Hashtag4"="1d BBBO",
+                        "TotalSeqB-Hashtag5"="Sham",
+                        "TotalSeqB-Hashtag6"="Sham",
+                        "TotalSeqB-Hashtag7"="3d BBBO")
+```
+
+```{r Hash3}
+Raw <- Read10X(data.dir = "F:/Data/Sequencing/CellRangerOuts/EA005/filtered_feature_bc_matrix")
+Seurat <- CreateSeuratObject(counts = Raw, project = "EA005")
+Seurat[["percent.mt"]] <- PercentageFeatureSet(Seurat,pattern = "^mt-")
+
+Hashing <- as.data.frame(Read10X(data.dir="F:/Data/Sequencing/CellRangerOuts/EA005F/raw_feature_bc_matrix/"))
+Hashing <- Hashing[,colSums(Hashing)>0]
+
+umis<-Seurat@assays$RNA@data@Dimnames[[2]]
+joint<-intersect(umis,colnames(Hashing))
+Hashing<-Hashing[,joint]
+Seurat<-subset(Seurat,cells = joint)
+Seurat[["HTO"]]<-CreateAssayObject(counts = Hashing)
+Seurat <- NormalizeData(Seurat, assay = "HTO", normalization.method = "CLR")
+Seurat <- HTODemux(Seurat, assay = "HTO", positive.quantile = 0.99)
+table(Seurat$HTO_classification.global)
+Idents(Seurat)<-"HTO_classification.global"
+EA005<-subset(Seurat, idents = "Singlet", invert = FALSE)
+EA005$hash.ID<-droplevels(EA005$hash.ID)
+EA005$Treatment_Specific<-recode(EA005$hash.ID,
+                        "TotalSeqB-Hashtag1"="3d BBBO",
+                        "TotalSeqB-Hashtag2"="3d FUS Sham",
+                        "TotalSeqB-Hashtag3"="3d MB Sham",
+                        "TotalSeqB-Hashtag4"="1d FUS Sham",
+                        "TotalSeqB-Hashtag5"="1d MB Sham",
+                        "TotalSeqB-Hashtag6"="Naive")
+EA005$Treatment<-recode(EA005$hash.ID,
+                        "TotalSeqB-Hashtag1"="3d BBBO",
+                        "TotalSeqB-Hashtag2"="Sham",
+                        "TotalSeqB-Hashtag3"="Sham",
+                        "TotalSeqB-Hashtag4"="Sham",
+                        "TotalSeqB-Hashtag5"="Sham",
+                        "TotalSeqB-Hashtag6"="Naive")
+```
+
+# Saving
+```{r}
+setwd('F:/Data/Sequencing/SavedData/')
+save(EA001,EA002,EA003,EA004,EA005,file="1-Demultiplexing.RData")
+```
+
