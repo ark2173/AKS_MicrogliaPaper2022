@@ -1,0 +1,68 @@
+---
+title: "Integrating Data"
+author: Alina Kline-Schoder
+date: | 
+      | Started on 04/19/2021
+      | Compiled: `r format(Sys.Date(), "%B %d, %Y")`
+output:
+  github_document:
+    toc: yes
+---
+# Integrating all data
+
+```{r message = FALSE, echo = FALSE}
+rm(list = ls())
+library(Seurat)
+require(ggdendro)
+require(Rmisc)
+library(Matrix)
+library(MASS)
+library(xtable)
+library(Matrix.utils)
+library(reshape2)
+library(BiocManager)
+library(rhdf5)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(rstatix)
+library(ggpmisc)
+library(gridExtra)
+library(here)
+options(future.globals.maxSize = 4000 * 1024^5)
+setwd("F:/Data/Sequencing/SavedData")
+load("1-Demultiplexing.RData")
+load("3-Microglia.RData")
+```
+  
+
+# QC, SC Transform Integration
+```{r Integrating Hashing and Run0}
+AllOfIt<-list(EA001,EA002,EA003,EA004,EA005)
+Idents(Microglia)<-"orig.ident"
+for (i in 1:length(AllOfIt)) {
+  AllOfIt[[i]]<-subset(AllOfIt[[i]],subset = nCount_RNA > 2000 & nCount_RNA < 15000 & percent.mt < 10 & nFeature_RNA>1000)  
+  Idents(AllOfIt[[i]])<-"orig.ident"    
+  DefaultAssay(AllOfIt[[i]])<-"RNA"
+  AllOfIt[[i]] <- subset(AllOfIt[[i]],cells=gsub("\\_.*","",WhichCells(Microglia,idents = levels(Idents(AllOfIt[[i]])))))
+  AllOfIt[[i]] <- SCTransform(AllOfIt[[i]], verbose = FALSE)
+  DefaultAssay(AllOfIt[[i]])<-"SCT"
+}
+
+Feat <- SelectIntegrationFeatures(object.list = AllOfIt, nfeatures = 2000)
+AllOfIt <- PrepSCTIntegration(object.list = AllOfIt, anchor.features = Feat, verbose = FALSE)
+Anchors <- FindIntegrationAnchors(object.list = AllOfIt, normalization.method = "SCT", anchor.features = Feat, verbose = FALSE)
+Microglia <- IntegrateData(anchorset = Anchors, normalization.method = "SCT",verbose = FALSE)
+```
+
+
+```{r Saving}
+setwd("F:/Data/Sequencing/SavedData/")
+Microglia$Treatment<-factor(Microglia$Treatment,levels=c("Naive","Sham","1d BBBO","3d BBBO"))
+save(Microglia,file = "4-Microglia.RData")
+```
+

@@ -1,0 +1,170 @@
+---
+title: "Figure 2"
+author: Alina Kline-Schoder
+date: | 
+      | Started on 06/01/2021
+      | Compiled: `r format(Sys.Date(), "%B %d, %Y")`
+output:
+  github_document:
+    toc: yes
+---
+# Figure 3 - Microglia no cell cycle
+  A. All Cells TSNE highlighted for Microglia
+  B. Microglia clustering by clusters, treatment
+  C. Clusters split by treatment and treatment split by clusters
+  C. Cluster specific heatmap
+  D. Ontology results?
+  E. Phase specific heatmap (?)
+  F. Phase scores on tsne (?)
+  G. Treatment by phase
+
+```{r message = FALSE, echo = FALSE}
+rm(list = ls())
+library(cowplot)
+library(Seurat)
+require(ggdendro)
+require(Rmisc)
+library(Matrix)
+library(MASS)
+library(xtable)
+library(Matrix.utils)
+library(reshape2)
+library(BiocManager)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(rstatix)
+library(ggpmisc)
+library(gridExtra)
+library(here)
+```
+
+# Loading File with Integrated Seurat with all data
+```{r Loading}
+setwd("/Users/alinakline-schoder/Desktop/RDatas.nosync")
+load("5-CellCycleMicroglia.RData")
+DefaultAssay(Microglia)<-"RNA_New"
+Idents(Microglia)<-"hicat_clusters"
+Microglia$Treatment_New<-recode(Microglia$Treatment_Broad,
+                                 "FUSMB_450_24h_Ipsi"="24h 450kPa",
+                                 "FUSMB_450_72h_Ipsi"="72h 450kPa",
+                                 "FUSMB_750_72h_Ipsi"="72h 750kPa Ipsi",
+                                 "FUSMB_750_72h_Contra"="72h 750kPa Contra")
+```
+# Figure 2.A. TSNE by cell type and treatment
+```{r}
+Idents(Microglia)<-"hicat_clusters"
+Dim1<-DimPlot(Microglia,group.by = "hicat_clusters",label=TRUE)
+Dim2<-DimPlot(Microglia,group.by = "Treatment_New",label=FALSE)
+```
+
+# Treatment by clusters
+```{r}
+dat<-as.data.frame(table(Microglia$Treatment_New,Microglia$hicat_clusters))
+dat$Var2<-ordered(dat$Var2,levels=rev(levels(dat$Var2)))
+BP1<-ggplot(dat, aes(x=Var1,y=Freq,fill=Var2)) + 
+  geom_bar(position="fill",stat="identity")+scale_y_continuous(labels = scales::percent_format())+theme_minimal()+theme(legend.position="none",axis.title = element_blank(),
+        plot.margin=grid::unit(c(0,0,0,0),"cm"),panel.grid.major.x = element_blank(),axis.text = element_text(size=10),axis.text.x = element_text(angle=45,vjust=1,hjust=0.75)) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 20))+coord_flip()
+```
+
+# clusters by treatment
+```{r}
+dat<-as.data.frame(table(Microglia$hicat_clusters,Microglia$Treatment_New))
+dat$Var2<-ordered(dat$Var2,levels=rev(levels(dat$Var2)))
+BP2<-ggplot(dat, aes(x=Var1,y=Freq,fill=Var2)) + 
+  geom_bar(position="fill",stat="identity")+scale_y_continuous(labels = scales::percent_format())+theme_minimal()+theme(legend.position="none",axis.title = element_blank(),
+        plot.margin=grid::unit(c(0,0,0,0),"cm"),panel.grid.major.x = element_blank(),axis.text = element_text(size=10),axis.text.x = element_text(angle=45,vjust=1,hjust=0.75)) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 20))+coord_flip()
+```
+
+# Figure 2.B. DE heatmap
+```{r}
+Idents(Microglia)<-"hicat_clusters"
+clustermarkers <- FindAllMarkers(Microglia, only.pos = TRUE, min.pct = 0.5, logfc.threshold = 1,min.diff.pct = 0.4)
+# Gene Selection
+top10 <- clustermarkers %>%
+    group_by(cluster) %>%
+    top_n(n = 10, wt = avg_log2FC)
+Genes2Plot<-rev(c(top10$gene,"Cx3cr1","Tmem119","P2ry12","Hexb","Sall1","Aif1","Csf1r","Siglech","Itgam"))
+Genes2Highlight<-c("Pf4", "Ccl4","Tmem119","Ly6c2","Mrc1","Fos","Msr1","Fam105a","Tmem119","Aif1","Siglech")
+
+#Data preparation
+Data<-t(Microglia@assays$RNA@data[Genes2Plot,])
+Data<-cbind(as.data.frame(Data),Microglia$hicat_clusters,Microglia$Treatment_Broad)
+colnames(Data)[dim(Data)[2]]<-"Treatment"
+colnames(Data)[dim(Data)[2]-1]<-"Cluster"
+Data<-Data[order(Data$Treatment,Data$Cluster),]
+Clus<-Data$Cluster
+Type<-Data$CellType
+Data<-Data[,1:(dim(Data)[2]-2)]
+Data<-Seurat::ScaleData(t(as.matrix(Data)))
+
+#Plot setup
+Highlighting<-c(which(rownames(Data)==Genes2Highlight[1]),
+                which(rownames(Data)==Genes2Highlight[2]),
+                which(rownames(Data)==Genes2Highlight[3]),
+                which(rownames(Data)==Genes2Highlight[4]),
+                which(rownames(Data)==Genes2Highlight[5]),
+                which(rownames(Data)==Genes2Highlight[6]),
+                which(rownames(Data)==Genes2Highlight[7]),
+                which(rownames(Data)==Genes2Highlight[8]),
+                which(rownames(Data)==Genes2Highlight[9]),
+                which(rownames(Data)==Genes2Highlight[10]),
+                which(rownames(Data)==Genes2Highlight[11]))  
+
+SideA<-rowAnnotation(link=anno_mark(at = Highlighting, labels = Genes2Highlight,labels_gp = gpar(fontsize=10),side = "left"))
+SideB<-rowAnnotation(type=c(top10$cluster,rep("Signature", length(Genes2Plot)-length(top10$gene))))
+
+
+Top<-columnAnnotation(Cluster=Clus,CellType=Type,show_legend=FALSE,show_annotation_name=FALSE)
+```
+# Volcano 24h
+```{r}
+library(ggrepel)
+Idents(Microglia)<-"Treatment_New"
+clustermarkers <- FindMarkers(Microglia, only.pos = TRUE,ident.1 = "24h 450kPa",ident.2 = "Sham")
+clustermarkers$gene<-rownames(clustermarkers)
+clustermarkers$p_val_new<--log(clustermarkers$p_val)
+clustermarkers_sig<-clustermarkers[clustermarkers$avg_log2FC>2,]
+clustermarkers_sig_super<-clustermarkers_sig[clustermarkers_sig$p_val_new>200,]
+
+Volcano1<-ggplot() + geom_point(data=clustermarkers,aes(x=avg_log2FC,y=p_val_new))+geom_point(data=clustermarkers_sig, aes(x=avg_log2FC, y=p_val_new),color="red")+geom_text_repel(data=clustermarkers_sig_super, aes(x=avg_log2FC, y=p_val_new,label=gene),max.overlaps = 100)
+```
+
+# Volcano 72h
+```{r}
+library(ggrepel)
+Idents(Microglia)<-"Treatment_New"
+clustermarkers <- FindMarkers(Microglia, only.pos = TRUE,ident.1 = "72h 450kPa",ident.2 = "Sham")
+clustermarkers$gene<-rownames(clustermarkers)
+clustermarkers$p_val_new<--log(clustermarkers$p_val)
+clustermarkers_sig<-clustermarkers[clustermarkers$avg_log2FC>2,]
+clustermarkers_sig_super<-clustermarkers_sig[clustermarkers_sig$p_val_new>200,]
+
+Volcano2<-ggplot() + geom_point(data=clustermarkers,aes(x=avg_log2FC,y=p_val_new))+geom_point(data=clustermarkers_sig, aes(x=avg_log2FC, y=p_val_new),color="red")+geom_text_repel(data=clustermarkers_sig_super, aes(x=avg_log2FC, y=p_val_new,label=gene),max.overlaps = 100)
+```
+
+
+# All Plots
+```{r}
+Heatmap(Data,cluster_rows = FALSE,cluster_columns = FALSE,show_row_names = FALSE,show_column_names = FALSE,top_annotation = Top,left_annotation = SideA,right_annotation = SideB)
+BP1
+BP2
+Dim1
+Dim2
+Volcano1
+Volcano2
+
+Idents(Microglia)<-"hicat_clusters"
+Clus6Markers<-FindMarkers(Microglia,ident.1 = "6",ident.2 = "8")
+Clus4Markers<-FindMarkers(Microglia,ident.1 = "4",ident.2 = "8")
+Clus1Markers<-FindMarkers(Microglia,ident.1 = "1",ident.2 = "8")
+
+Clus1v4<-FindMarkers(Microglia,ident.1 = "1",ident.2 = "4")
+```
+

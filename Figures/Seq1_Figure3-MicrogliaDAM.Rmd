@@ -1,0 +1,183 @@
+---
+title: "Figure 2"
+author: Alina Kline-Schoder
+date: | 
+      | Started on 06/01/2021
+      | Compiled: `r format(Sys.Date(), "%B %d, %Y")`
+output:
+  github_document:
+    toc: yes
+---
+# Figure 3 - Microglia Clustering and DAM
+
+```{r message = FALSE, echo = FALSE}
+rm(list = ls())
+library(cowplot)
+library(Seurat)
+require(ggdendro)
+require(Rmisc)
+library(Matrix)
+library(MASS)
+library(xtable)
+library(Matrix.utils)
+library(reshape2)
+library(BiocManager)
+library(rhdf5)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(rstatix)
+library(ggpmisc)
+library(gridExtra)
+library(here)
+setwd("F:/Data/Sequencing/SavedData")
+load("5-MicrogliaFigures.RData")
+ColorsTreatment<-c("#FFFFFF","#A3A3A3","#75A0B2","#205F83")
+col_fun = colorRamp2(c(-2, 0, 2), c("blue", "#D3D3D3", "red"))
+```
+# Clusters
+# cluster marker heatmap
+```{r}
+clustermarkers$pct.dif<-clustermarkers$pct.1-clustermarkers$pct.2
+Genes2Plot<-clustermarkers%>%
+    group_by(cluster) %>%
+    top_n(n = 10, wt = pct.dif)
+Genes2Plot<-unique(Genes2Plot$gene)
+Idents(Microglia)<-"seurat_clusters"
+Sub<-subset(Microglia,downsample=100)
+Data<-t(Sub@assays$RNA@data[Genes2Plot,])
+Data<-cbind(as.data.frame(Data),Sub$seurat_clusters,Sub$Treatment)
+colnames(Data)[dim(Data)[2]-1]<-"Cluster"
+colnames(Data)[dim(Data)[2]]<-"Treatment"
+Data<-Data[order(Data$Cluster,Data$Treatment),]
+Treatment<-Data$Treatment
+Cluster<-Data$Cluster
+Data<-Data[,1:(dim(Data)[2]-2)]
+Data<-Seurat::ScaleData(t(as.matrix(Data)))
+names(ColorsTreatment)<-levels(Microglia$Treatment)
+Top<-columnAnnotation(cluster=anno_simple(Cluster,height=unit(2,"mm")),Treatment=anno_simple(Treatment,height = unit(2, "mm"),col = ColorsTreatment,border = TRUE),show_legend=FALSE,show_annotation_name=FALSE)
+HM<-Heatmap(Data,
+            cluster_rows = FALSE,
+            cluster_columns = FALSE,
+            show_row_names = TRUE,
+            show_column_names = FALSE,
+            row_names_side = "left",
+            top_annotation = Top,
+            col=col_fun,
+            show_heatmap_legend = FALSE,
+            row_names_gp = gpar(fontsize=6,family="Arial"),
+            column_split = Cluster,
+            column_title_gp = gpar(fontsize=8,family="Arial"))
+HMLeg<-grid.grabExpr(draw(Legend(col_fun = col_fun, 
+                                  direction = "vertical",
+                                  grid_height = unit(0.5,"mm"),
+                                  grid_width=unit(1,"mm"),
+                                  at=c(-2,0,2),
+                                  labels_gp = gpar(col = "black",
+                                                  fontface="plain",
+                                                  fontsize=6),
+                                  title_gp = gpar(col = "black",
+                                                  fontface="plain",
+                                                  fontsize=8),
+                                  labels = c("-2", "0", "2"))))
+HM_Ready<-plot_grid(grid.grabExpr(draw(HM)),HMLeg,rel_widths = c(10,1),nrow=1)
+```
+
+# cluster distribution
+```{r}
+df<-as.data.frame(table(Microglia$seurat_clusters,Microglia$Treatment))
+tab<-table(Microglia$Treatment)
+df$Total<-as.numeric(tab[df$Var2])
+df$Freq<-as.numeric(df$Freq)
+df$Freq_New<-df$Freq/df$Total
+ggplot(df,aes(x=Var1,y=Freq_New,fill=Var2))+geom_bar(stat="identity",position="dodge")
+
+df<-as.data.frame(table(Microglia$seurat_clusters,Microglia$Phase))
+ggplot(df,aes(x=Var1,y=Freq,fill=Var2))+geom_bar(stat="identity",position="fill")
+```
+
+# DAM v all other cells Volcano
+```{r}
+logFC<-0.5
+p_val<-150
+toptable <- as.data.frame(DAMMarkers)
+toptable$lab <- rownames(DAMMarkers)
+toptable$xvals <- toptable[['avg_log2FC']]
+toptable$yvals <- -log10(toptable[['p_val_adj']])
+xlab<-bquote(~Log[2] ~ "fold change")
+ylab<-bquote(~-Log[10] ~ italic(P))
+toptable[abs(toptable$xvals)<logFC|toptable$yvals<p_val,]$lab<-""
+
+ggplot(toptable, aes(x = xvals, y = yvals)) + 
+    geom_point() + xlab(xlab) + ylab(ylab) + 
+    geom_text_repel(aes(label=lab),max.overlaps = 100)+
+    theme(panel.grid = element_blank())
+  
+```
+# Heatmap of DEG within DAM
+```{r}
+Idents(sub2)<-"Treatment"
+marks<-FindAllMarkers(sub2,only.pos = T)
+marks$gene<-rownames(marks)
+marks <- marks[marks$p_val_adj<0.05,]
+marks_1d <- marks[marks$cluster=="1d BBBO",]
+marks_3d <- marks[marks$cluster=="3d BBBO",]
+
+marks_SN<-marks[marks$cluster!="Naive"&marks$cluster!="Sham",]
+Genes2Plot<-marks_SN%>%
+    group_by(cluster) %>%
+    top_n(n = 10, wt = avg_log2FC)
+Genes2Plot<-unique(Genes2Plot$gene)
+Idents(sub2)<-"seurat_clusters"
+Data<-t(sub2@assays$RNA@data[Genes2Plot,])
+Data<-cbind(as.data.frame(Data),sub2$seurat_clusters,sub2$Treatment)
+colnames(Data)[dim(Data)[2]-1]<-"Cluster"
+colnames(Data)[dim(Data)[2]]<-"Treatment"
+Data<-Data[order(Data$Cluster,Data$Treatment),]
+Treatment<-Data$Treatment
+Cluster<-Data$Cluster
+Data<-Data[,1:(dim(Data)[2]-2)]
+Data<-Seurat::ScaleData(t(as.matrix(Data)))
+names(ColorsTreatment)<-levels(Microglia$Treatment)
+Top<-columnAnnotation(cluster=anno_simple(Cluster,height=unit(2,"mm")),Treatment=anno_simple(Treatment,height = unit(2, "mm"),col = ColorsTreatment,border = TRUE),show_legend=FALSE,show_annotation_name=FALSE)
+Heatmap(Data,
+            cluster_rows = FALSE,
+            cluster_columns = FALSE,
+            show_row_names = TRUE,
+            show_column_names = FALSE,
+            row_names_side = "left",
+            top_annotation = Top,
+            col=col_fun,
+            show_heatmap_legend = FALSE,
+            row_names_gp = gpar(fontsize=6,family="Arial"),
+            column_split = Cluster,
+            column_title_gp = gpar(fontsize=8,family="Arial"))
+```
+
+# Ontology searches
+```{r}
+Onto_1d<-GO_Search(sub2,marks_1d)
+Onto_1d$PCT<-(Onto_1d$Significant/Onto_1d$Annotated)*100
+Onto_1d<-Onto_1d[Onto_1d$Annotated>10,]
+Onto_1d<-Onto_1d[Onto_1d$Significant>1,]
+
+Onto_3d<-GO_Search(sub2,marks_3d)
+Onto_3d$PCT<-(Onto_3d$Significant/Onto_3d$Annotated)*100
+Onto_3d<-Onto_3d[Onto_3d$Annotated>10,]
+Onto_3d<-Onto_3d[Onto_3d$Significant>1,]
+```
+
+# DAM gene dotplot
+```{r}
+DAMMarkers<-c('Cst3', 'Hexb', 'Lpl', 'Cst7', 'Apoe', 'Ctsd', 'Tyrobp', 'Trem2', 'Cd9', 'Itgax', 'Cd63', 'Timp2')
+
+DotPlot(Microglia,group.by = "seurat_clusters",features=DAMMarkers)
+```
+
+
+# Putting it all together
+

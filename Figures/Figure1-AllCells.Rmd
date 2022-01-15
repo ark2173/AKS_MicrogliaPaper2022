@@ -1,0 +1,98 @@
+---
+title: "All Cells"
+author: Alina Kline-Schoder
+date: | 
+      | Started on 06/01/2021
+      | Compiled: `r format(Sys.Date(), "%B %d, %Y")`
+output:
+  github_document:
+    toc: yes
+---
+
+
+```{r message = FALSE, echo = FALSE}
+rm(list = ls())
+library(cowplot)
+library(Seurat)
+require(ggdendro)
+require(Rmisc)
+library(Matrix)
+library(MASS)
+library(xtable)
+library(Matrix.utils)
+library(reshape2)
+library(BiocManager)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(rstatix)
+library(ggpmisc)
+library(gridExtra)
+library(ComplexHeatmap)
+library(RColorBrewer)
+
+ColorsTreatment<-c("#BD6B73","#CCAD8F","#81C3D7","#16425B")
+ColorsAllClusters<-c("#66C2A5","#FC8D62","#8DA0CB","#E78AC3","#C59797","#A6D854","#FFD92F")
+library(circlize)
+setwd("F:/Data/Sequencing/SavedData")
+load("3-AllCells.RData")
+Genes<-c("S100a8","Cx3cr1","Hexb","Aif1","H2-Aa","Siglech","Ccr2","Pf4","Mrc1")
+
+```
+
+# Dimplot
+```{r}
+Dim<-DimPlot(Integrated,label=TRUE,group.by = "cell_number",cols = ColorsAllClusters,label.box = TRUE)+NoLegend()+scale_color_manual(values = ColorsAllClusters,labels=levels(Integrated$cell_type_new))+theme(
+  axis.ticks = element_blank(),
+  axis.text = element_blank(),
+  legend.position = c(0,0.2),
+  plot.title = element_blank(),
+  axis.title = element_text(size=12),
+  legend.text = element_text(size=12),
+  legend.spacing.x = unit(0.25,"mm"))
+```
+
+# Violin Plot
+```{r}
+Matrix<-as.data.frame(Integrated@assays$RNA@data[Genes,])
+Expression<-as.data.frame(t(Matrix))
+Expression$Cell<-rownames(Expression)
+k<-as.data.frame(Integrated$cell_number)
+colnames(k)<-"Cell_Type"
+k$Cell<-rownames(k)
+df_<-left_join(k,Expression,by="Cell")
+df_<-pivot_longer(df_,cols=Genes,names_to = "Gene",values_to = "value")
+df_$Gene<-factor(df_$Gene,levels=Genes)
+
+Violin<-ggplot(df_,aes(x=1,y=value,fill=Cell_Type))+geom_violin()+facet_grid(Gene~Cell_Type, space = "fixed",scales = "free",shrink=FALSE)+theme_bw()+
+  theme(legend.position="none",
+        axis.title.x = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.background = element_blank(),
+        plot.margin = margin(0.25,0.25,0.25,0.75,"cm"),
+        panel.spacing = unit(0,"lines"),
+        strip.text.x = element_text(size=10),
+        strip.text.y = element_text(size=8),
+        axis.title.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        strip.background = element_rect(fill="#EBEBEB",color="black")
+        )+ylab("Expression")+
+  scale_fill_manual(values=ColorsAllClusters)
+
+```
+
+```{r}
+AllCells<-plot_grid(Dim,Violin,labels=c("E","F"),rel_widths = c(1.75,1))
+setwd("/Users/alinakline-schoder/Desktop/RDatas.nosync")
+ggsave("AllCells.png",width = 7,height = 5,units = "in",bg="white")
+```
+
+
+
+

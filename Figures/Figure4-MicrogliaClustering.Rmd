@@ -1,0 +1,246 @@
+---
+title: "Microglia Figure"
+author: Alina Kline-Schoder
+date: | 
+      | Started on 06/01/2021
+      | Compiled: `r format(Sys.Date(), "%B %d, %Y")`
+output:
+  github_document:
+    toc: yes
+---
+
+
+```{r message = FALSE, echo = FALSE}
+rm(list = ls())
+library(cowplot)
+library(Seurat)
+require(ggdendro)
+require(Rmisc)
+library(Matrix)
+library(MASS)
+library(xtable)
+library(Matrix.utils)
+library(reshape2)
+library(BiocManager)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(rstatix)
+library(ggpmisc)
+library(gridExtra)
+library(here)
+library(RColorBrewer)
+library(ComplexHeatmap)
+ColorsTreatment<-brewer.pal(6,"Set1")
+ColorMicrogliaClusters<-brewer.pal(7,"Set2")
+ColorPhase<-brewer.pal(6,"Pastel2")
+
+library(circlize)
+Colors_GeneExp = colorRamp2(c(-2, 0, 2), c("red", "white", "blue"))
+Colors_Feat<-c("red","blue")
+library(slingshot)
+library(tidyverse)
+library(tidymodels)
+library(Seurat)
+library(scales)
+library(viridis)
+library(Matrix)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(ggbeeswarm)
+```
+
+# Loading File with Integrated Seurat with all data
+```{r Loading}
+setwd("/Users/alinakline-schoder/Desktop/RDatas.nosync")
+load("5-CellCycleMicroglia.RData")
+
+DefaultAssay(Microglia)<-"RNA"
+Idents(Microglia)<-"hicat_clusters"
+Microglia$Treatment_New<-recode(Microglia$Treatment_Broad,
+                                 "FUSMB_450_24h_Ipsi"="24h 450kPa",
+                                 "FUSMB_450_72h_Ipsi"="72h 450kPa",
+                                 "FUSMB_750_72h_Ipsi"="72h 750kPa Ipsi",
+                                 "FUSMB_750_72h_Contra"="72h 750kPa Contra")
+Microglia$Treatment_New<-ordered(Microglia$Treatment_New,levels=c(
+  "Naive",
+  "Sham",
+  "24h 450kPa",
+  "72h 450kPa",
+  "72h 750kPa Ipsi",
+  "72h 750kPa Contra"))
+Microglia$Phase<-factor(Microglia$Phase,levels=c("G0","MG1","G1S","S","G2M","M"))
+Microglia$hicat_clusters<-as.factor(Microglia$hicat_clusters)
+
+Microglia$clusters_labeled<-recode(Microglia$hicat_clusters,
+                                   "1"="MC2.B",
+                                   "7"="MC3.D",
+                                   "9"="MC3.C",
+                                   "10"="MC2.A",
+                                   "11"="MC1",
+                                   "13"="MC3.A",
+                                   "18"="MC3.B")
+
+Microglia$clusters_labeled<-factor(Microglia$clusters_labeled,levels=c("MC1","MC2.A","MC2.B","MC3.A","MC3.B","MC3.C","MC3.D"))
+Microglia$clusters_labeled_full<-recode(Microglia$clusters_labeled,
+                                   "MC1"="MC1: Homeostatic",
+                                   "MC2.A"="MC2.A: Interferon A",
+                                   "MC2.B"="MC2.B: Interferon B",
+                                   "MC3.A"="MC3.A: Perturbed 1",
+                                   "MC3.B"="MC3.B: Perturbed 2",
+                                   "MC3.C"="MC3.C: Perturbed 3",
+                                   "MC3.D"="MC3.D: Perturbed 4")
+names(ColorsTreatment)<-levels(Microglia$Treatment_New)
+
+Microglia$clusters_broad<-recode(Microglia$clusters_labeled,
+                                   "MC1"="MC1",
+                                   "MC2.A"="MC2",
+                                   "MC2.B"="MC2",
+                                   "MC3.A"="MC3",
+                                   "MC3.B"="MC3",
+                                   "MC3.C"="MC3",
+                                   "MC3.D"="MC3")
+```
+
+
+# barcharts
+```{r}
+dat<-as.data.frame(table(Microglia$clusters_labeled,Microglia$Treatment_New))
+dat$Clusters<-dat$Var1
+dat$Treatment<-dat$Var2
+ggplot(dat, aes(x=Freq,y=Clusters,fill=Treatment)) + 
+  scale_fill_manual(values = ColorsTreatment,guide=guide_legend(ncol = 2)) + 
+  geom_bar(position="fill",stat="identity") + 
+  theme_minimal() + 
+  scale_x_continuous(breaks = c(0,0.5,1),labels=c("0%","50%","100%")) +
+  theme(axis.text.x = element_text(family = "Arial"),
+        legend.position="right",
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.margin=margin(0,0,0,0.3,"cm"),
+        panel.grid.major.x = element_blank(),
+        axis.text.y = element_text(size=6,hjust=1,family = "Arial"),
+        legend.title = element_blank(),
+        legend.text = element_text(size=10,family="Arial"),
+        legend.key.size = unit(0.5,"line"))
+
+
+dat<-as.data.frame(table(Microglia$Treatment_New,Microglia$clusters_labeled))
+dat$Clusters<-dat$Var2
+dat$Treatment<-dat$Var1
+ggplot(dat, aes(x=Freq,y=Treatment,fill=Clusters)) + 
+  scale_fill_manual(values = ColorMicrogliaClusters,guide=guide_legend(ncol = 2)) + 
+  geom_bar(position="fill",stat="identity") + 
+  theme_minimal() + 
+  scale_x_continuous(breaks = c(0,0.5,1),labels=c("0%","50%","100%")) +
+  theme(axis.text.x = element_text(family = "Arial"),
+        legend.position="right",
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.margin=margin(0,0,0,0.3,"cm"),
+        panel.grid.major.x = element_blank(),
+        axis.text.y = element_text(size=6,hjust=1,family = "Arial"),
+        legend.title = element_blank(),
+        legend.text = element_text(size=10,family="Arial"),
+        legend.key.size = unit(0.5,"line"))
+
+```
+
+
+
+# Figure 2.B. DE heatmap
+```{r}
+Idents(Microglia)<-"clusters_labeled"
+markers <- FindAllMarkers(Microglia, only.pos = TRUE, min.pct = 0.5, logfc.threshold = 0.5)
+Genes2Plot<-markers%>%
+    group_by(cluster) %>%
+    top_n(n = 15, wt = avg_log2FC)
+Genes2Plot<-unique(Genes2Plot$gene)
+
+#Data preparation
+Idents(Microglia)<-"clusters_labeled"
+Sub<-subset(Microglia,downsample=500)
+
+Data<-t(Sub@assays$RNA@data[Genes2Plot,])
+Data<-cbind(as.data.frame(Data),Sub$Phase,Sub$Treatment_New,Sub$clusters_labeled)
+colnames(Data)[dim(Data)[2]-2]<-"Phase"
+colnames(Data)[dim(Data)[2]-1]<-"Treatment"
+colnames(Data)[dim(Data)[2]]<-"Cluster"
+Data<-Data[order(Data$Cluster,Data$Treatment,Data$Phase),]
+Treatment<-Data$Treatment
+Cluster<-Data$Cluster
+Phase<-Data$Phase
+Data<-Data[,1:(dim(Data)[2]-3)]
+Data<-Seurat::ScaleData(t(as.matrix(Data)))
+
+names(ColorsTreatment)<-levels(Microglia$Treatment_New)
+names(ColorMicrogliaClusters)<-levels(Microglia$clusters_labeled)
+names(ColorPhase)<-levels(Microglia$Phase)
+
+Top<-columnAnnotation( Cluster=anno_simple(Cluster,height=unit(2,"mm"),col=ColorMicrogliaClusters), Phase=anno_simple(Phase,height=unit(2,"mm"),col=ColorPhase),Treatment=anno_simple(Treatment,height = unit(2, "mm"),col = ColorsTreatment),show_legend=FALSE,show_annotation_name=FALSE)
+
+HM<-Heatmap(Data,
+            cluster_rows = FALSE,
+            cluster_columns = FALSE,
+            show_row_names = TRUE,
+            show_column_names = FALSE,
+            top_annotation = Top,
+            col=Colors_GeneExp,
+            heatmap_legend_param = list(
+              title = "",
+              direction="horizontal",
+              title_gp=gpar(fontsize=8,family="Arial"),
+              labels_gp=gpar(fontsize=8,family="Arial"),
+              grid_width = unit(0.1, "cm")),
+            heatmap_width = unit(3.75,"in"),
+            heatmap_height = unit(4.25,"in"),
+            row_names_gp = gpar(fontsize=6,family="Arial"))
+HM_Ready<-grid.grabExpr(draw(HM,heatmap_legend_side="bottom",padding = unit(c(0, 0, 0, 0), "cm")))
+```
+
+
+# Violin Plots
+```{r}
+Genes<-c("Ifitm3","Ccl12","Cstb","Apoe","Lgals3","Mif","Cd63","Lpl","Ccl4","Siglech","Tmem119")
+Matrix<-as.data.frame(Microglia@assays$RNA@data[Genes,])
+Expression<-as.data.frame(t(Matrix))
+Expression$Cell<-rownames(Expression)
+k<-as.data.frame(Microglia$clusters_labeled)
+colnames(k)<-"Cell_Type"
+k$Cell<-rownames(k)
+df_<-left_join(k,Expression,by="Cell")
+df_<-pivot_longer(df_,cols=Genes,names_to = "Gene",values_to = "value")
+df_$Gene<-factor(df_$Gene,levels=Genes)
+
+ggplot(df_,aes(x=1,y=value,fill=Cell_Type))+geom_violin()+facet_grid(Gene~Cell_Type, space = "fixed",scales = "free",shrink=FALSE)+theme_bw()+
+  theme(legend.position="none",
+        axis.title.x = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.background = element_blank(),
+        plot.margin = margin(0.25,0.25,0.25,0.75,"cm"),
+        panel.spacing = unit(0,"lines"),
+        strip.text.x = element_text(size=8),
+        strip.text.y = element_text(size=6),
+        axis.title.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        strip.background = element_rect(fill="#EBEBEB",color="black")
+        )+ylab("Expression")
+```
+
+# Feature Plots
+```{r}
+FeaturePlot(Microglia,features = c("Hexb",
+                                   "Ccl4",
+                                   "Apoe",
+                                   "Cd63",
+                                   "Ifitm3",
+                                   ))
+```
+

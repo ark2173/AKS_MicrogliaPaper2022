@@ -1,0 +1,200 @@
+---
+title: "Integrating Data"
+author: Alina Kline-Schoder
+date: | 
+      | Started on 04/19/2021
+      | Compiled: `r format(Sys.Date(), "%B %d, %Y")`
+output:
+  github_document:
+    toc: yes
+---
+# Microglia Data analysis
+
+```{r message = FALSE, echo = FALSE}
+rm(list = ls())
+library(Seurat)
+require(ggdendro)
+require(Rmisc)
+library(Matrix)
+library(MASS)
+library(xtable)
+library(Matrix.utils)
+library(reshape2)
+library(BiocManager)
+library(rhdf5)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(rstatix)
+library(ggpmisc)
+library(gridExtra)
+library(here)
+setwd("F:/Data/Sequencing/SavedData")
+load("6-CAM.RData")
+setwd("F:/Data/Sequencing/Files/")
+source("Ontology.R")
+DefaultAssay(CAM)<-"RNA"
+CAM<-ScaleData(CAM)
+
+```
+  
+# Clustering
+```{r}
+DefaultAssay(CAM)<-"integrated"
+CAM <- ScaleData(CAM)
+CAM <- RunPCA(CAM)
+CAM <- FindNeighbors(CAM, dims = 1:10)
+CAM <- FindClusters(CAM, resolution = 0.1)
+CAM <- RunUMAP(CAM, dims = 1:10,metric = "euclidean")
+DimPlot(CAM)
+```
+
+# Phase scoring
+```{r}
+setwd("F:/Data/Sequencing/Files")
+Barres<-read.csv(file = 'BarresCellStateGenes.csv')
+source('AKS_CellCycleScoring.R')
+AllGenes<-rownames(CAM@assays$RNA)
+G2M<-as.character(Barres[Barres$G2.M %in% AllGenes,]$G2.M)
+MG1<-as.character(Barres[Barres$M.G1 %in% AllGenes,]$M.G1)
+G1S<-as.character(Barres[Barres$G1.S %in% AllGenes,]$G1.S)
+S<-as.character(Barres[Barres$S %in% AllGenes,]$S)
+M<-as.character(Barres[Barres$M %in% AllGenes,]$M)
+Matrix<-CAM@assays$RNA@counts
+Matrix_Sub<-as.data.frame(t(Matrix[S,]))
+Matrix_Sub$Cell_Sum<-rowSums(Matrix_Sub)
+Cor<-cor(as.matrix(Matrix_Sub))
+Cor<-Cor[dim(Cor)[2],]
+Cor<-Cor[names(Cor)!="Cell_Sum"]
+Cor[is.na(Cor)]<-0
+S.Genes <- names(Cor[Cor>0.3])
+Matrix_Sub<-as.data.frame(t(Matrix[G2M,]))
+Matrix_Sub$Cell_Sum<-rowSums(Matrix_Sub)
+Cor<-cor(as.matrix(Matrix_Sub))
+Cor<-Cor[dim(Cor)[2],]
+Cor<-Cor[names(Cor)!="Cell_Sum"]
+Cor[is.na(Cor)]<-0
+G2M.Genes <- names(Cor[Cor>0.3])
+Matrix_Sub<-as.data.frame(t(Matrix[MG1,]))
+Matrix_Sub$Cell_Sum<-rowSums(Matrix_Sub)
+Cor<-cor(as.matrix(Matrix_Sub))
+Cor<-Cor[dim(Cor)[2],]
+Cor<-Cor[names(Cor)!="Cell_Sum"]
+Cor[is.na(Cor)]<-0
+MG1.Genes <- names(Cor[Cor>0.3])
+Matrix_Sub<-as.data.frame(t(Matrix[G1S,]))
+Matrix_Sub$Cell_Sum<-rowSums(Matrix_Sub)
+Cor<-cor(as.matrix(Matrix_Sub))
+Cor<-Cor[dim(Cor)[2],]
+Cor<-Cor[names(Cor)!="Cell_Sum"]
+Cor[is.na(Cor)]<-0
+G1S.Genes <- names(Cor[Cor>0.3])
+Matrix_Sub<-as.data.frame(t(Matrix[M,]))
+Matrix_Sub$Cell_Sum<-rowSums(Matrix_Sub)
+Cor<-cor(as.matrix(Matrix_Sub))
+Cor<-Cor[dim(Cor)[2],]
+Cor<-Cor[names(Cor)!="Cell_Sum"]
+Cor[is.na(Cor)]<-0
+M.Genes <- names(Cor[Cor>0.3])
+
+DefaultAssay(CAM)<-"RNA"
+CAM<-AKS_CellCycle(CAM,s.features = S.Genes,g1s.features=G1S.Genes,g2m.features = G2M.Genes,m.features = M.Genes,mg1.features = MG1.Genes)
+Data_New<-as.data.frame(cbind(CAM$G1S.Score,CAM$S.Score,CAM$G2M.Score,CAM$M.Score,CAM$MG1.Score))
+Data_New<-as.data.frame(as.matrix(scale(Data_New,scale = TRUE,center=TRUE)))
+colnames(Data_New)<-c("G1S","S","G2M","M","MG1")
+CAM$G1S.Score<-Data_New$G1S
+CAM$S.Score<-Data_New$S
+CAM$G2M.Score<-Data_New$G2M
+CAM$M.Score<-Data_New$M
+CAM$MG1.Score<-Data_New$MG1
+Scores<-Data_New
+Scores$MaxScore<-apply(Scores,1,max)
+Scores$Assignment1<-colnames(Scores)[apply(Scores,1,which.max)]
+Scores[Scores$MaxScore<1,]$Assignment1<-"G0"
+CAM$Phase<-factor(Scores$Assignment1,levels = c("G0","G1S","S","G2M","M","MG1"))
+#Plotting
+Scores$Assignment2<-Scores$Assignment1
+Scores$Assignment3<-Scores$Assignment1
+Scores[Scores$Assignment1=="G1S",]$Assignment2<-"G1S.S"
+Scores[Scores$Assignment1=="G1S",]$Assignment3<-"MG1.G1S"
+Scores[Scores$Assignment1=="S",]$Assignment2<-"G1S.S"
+Scores[Scores$Assignment1=="S",]$Assignment3<-"S.G2M"
+Scores[Scores$Assignment1=="G2M",]$Assignment2<-"G2M.M"
+Scores[Scores$Assignment1=="G2M",]$Assignment3<-"S.G2M"
+Scores[Scores$Assignment1=="M",]$Assignment2<-"G2M.M"
+Scores[Scores$Assignment1=="M",]$Assignment3<-"M.MG1"
+Scores[Scores$Assignment1=="MG1",]$Assignment2<-"MG1.G1S"
+Scores[Scores$Assignment1=="MG1",]$Assignment3<-"M.MG1"
+G1S<-cor(t(Data_New),     c( 2,-2,-2,-2,-2))
+G1S.S<-cor(t(Data_New),   c( 2, 2,-2,-2,-2))
+S<-cor(t(Data_New),       c(-2, 2,-2,-2,-2))
+S.G2M<-cor(t(Data_New),   c(-2, 2,2,-2,-2))
+G2M<-cor(t(Data_New),     c(-2,-2,2,-2,-2))
+G2M.M<-cor(t(Data_New),   c(-2,-2,2,2,-2))
+M<-cor(t(Data_New),       c(-2,-2,-2,2,-2))
+M.MG1<-cor(t(Data_New),   c(-2,-2,-2,2,2))
+MG1<-cor(t(Data_New),     c(-2,-2,-2,-2,2))
+MG1.G1S<-cor(t(Data_New), c( 2,-2,-2,-2,2))
+G0<-cor(t(Data_New),      c(-2,-2,-2,-2,-1.999999))
+  
+Correlations<-cbind(G1S,G1S.S,S,S.G2M,G2M,G2M.M,M,M.MG1,MG1,MG1.G1S,G0)
+colnames(Correlations)<-c("G1S","G1S.S","S","S.G2M","G2M","G2M.M","M","M.MG1","MG1","MG1.G1S","G0")
+FindingMax<-data.frame(Correlation1=Correlations[cbind(1:dim(Scores)[1],match(Scores$Assignment1,colnames(Correlations)))])
+FindingMax$Correlation2<-as.numeric(Correlations[cbind(1:dim(Scores)[1],match(Scores$Assignment2,colnames(Correlations)))])
+FindingMax$Correlation3<-Correlations[cbind(1:dim(Scores)[1],match(Scores$Assignment3,colnames(Correlations)))]
+FindingMax$Correlation_G0<-Correlations[cbind(1:dim(Scores)[1],dim(Correlations)[2])]
+Which<-apply(FindingMax,1,which.max)
+Max<-apply(FindingMax,1,max)
+Which[Max<0.75]<-"4"
+Options<-cbind(Scores$Assignment1,Scores$Assignment2,Scores$Assignment3,"G0")
+Assignnment<-data.frame(ChosenSpecific=Options[cbind(1:dim(Scores)[1],as.numeric(Which))],Max=Max,ChosenBroad=Options[,1])
+Assignnment$ChosenSpecific<-as.character(Assignnment$ChosenSpecific)
+Assignnment$ChosenBroad<-as.character(Assignnment$ChosenBroad)
+Assignnment$Max<-as.numeric(as.character(Assignnment$Max))
+#Ordering data for heatmap
+  
+Assignnment$ChosenSpecific<-factor(Assignnment$ChosenSpecific,levels=c("MG1.G1S","G1S","G1S.S","S","S.G2M","G2M","G2M.M","M","M.MG1","MG1","G0"))
+Assignnment$ChosenBroad<-factor(Assignnment$ChosenBroad,levels=c("G1S","S","G2M","M","MG1","G0"))
+Data_New<-Data_New[order(Assignnment$ChosenSpecific,-Assignnment$Max),]
+AssignnmentNew<-Assignnment[order(Assignnment$ChosenSpecific,-Assignnment$Max),]
+AssignnmentNew_Sub<-AssignnmentNew[AssignnmentNew$ChosenSpecific!="G0",]
+Data_New_Sub<-Data_New[AssignnmentNew$ChosenSpecific!="G0",]
+```
+
+
+# DEG between all treatment groups
+```{r}
+Idents(CAM)<-"Treatment"
+CAM_Treatment_Markers<-FindAllMarkers(CAM,only.pos = T)
+Markers_1d <- FindMarkers(CAM,ident.1 = "1d BBBO", ident.2 = "Sham")
+Markers_3d <- FindMarkers(CAM,ident.1 = "3d BBBO", ident.2 = "Sham")
+```
+
+## Ontology search for 1d v sham and 3d v Sham
+```{r}
+library(org.Mm.eg.db)
+library(topGO)
+clustermarkers_1d_filt<-Markers_1d[Markers_1d$p_val_adj<0.05,]
+Onto_1d<-GO_Search(CAM,clustermarkers_1d_filt)
+Onto_1d$PCT<-(Onto_1d$Significant/Onto_1d$Annotated)*100
+Onto_1d<-Onto_1d[Onto_1d$Annotated>10,]
+Onto_1d<-Onto_1d[Onto_1d$Significant>1,]
+
+
+clustermarkers_3d_filt<-Markers_3d[Markers_3d$p_val_adj<0.05,]
+Onto_3d<-GO_Search(CAM,clustermarkers_3d_filt)
+Onto_3d$PCT<-(Onto_3d$Significant/Onto_3d$Annotated)*100
+Onto_3d<-Onto_3d[Onto_3d$Annotated>10,]
+Onto_3d<-Onto_3d[Onto_3d$Significant>1,]
+```
+
+
+# Saving for figures - Microglia DEG
+```{r}
+setwd("F:/Data/Sequencing/SavedData")
+save(CAM,Onto_1d,Onto_3d,Markers_3d,Markers_1d,CAM_Treatment_Markers,file="7-CAMFigure.RData")
+```

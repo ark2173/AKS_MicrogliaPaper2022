@@ -1,0 +1,262 @@
+---
+title: "Microglia Figure"
+author: Alina Kline-Schoder
+date: | 
+      | Started on 06/01/2021
+      | Compiled: `r format(Sys.Date(), "%B %d, %Y")`
+output:
+  github_document:
+    toc: yes
+---
+
+
+```{r message = FALSE, echo = FALSE}
+rm(list = ls())
+library(cowplot)
+library(Seurat)
+library(ggplot2)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(RColorBrewer)
+library(ComplexHeatmap)
+library(ggrepel)
+library(ggVennDiagram)
+library(circlize)
+library(tidyr)
+library(dplyr)
+library(sjmisc)
+ColorsAllClusters<-c("#66C2A5","#FC8D62","#8DA0CB","#E78AC3","#C59797","#A6D854","#FFD92F","#BA95C7","#D3D942","#FFD92F","#B1A884","#BA95C7")
+
+ColorsTreatment<-c("#FFFFFF","#A3A3A3","#75A0B2","#205F83")
+ColorPhase<-rev(c("#E1E1E1",brewer.pal(5,"Pastel2")))
+setwd("F:/Data/Sequencing/SavedData")
+load("5-MicrogliaFigures.RData")
+load("3-AllCells.RData")
+col_fun = colorRamp2(c(-2, 0, 2), c("blue", "#D3D3D3", "red"))
+
+th <- theme_bw() + theme(legend.background = element_rect(),
+                         plot.title = element_text(angle = 0, size = 10, vjust = 1), 
+                                         plot.caption = element_blank(), 
+                                         axis.text = element_text(angle = 0,
+                                                                  size = 6,
+                                                                  vjust = 0.5), legend.position = "none",
+                         axis.title = element_text(size=8),
+                         panel.grid.major = element_blank())
+ColorsAllClusters[!str_contains("Microglia",levels(Integrated$cluster_full),switch = T)]<-"gray"
+ColorsAllClusters[str_contains("Microglia",levels(Integrated$cluster_full),switch = T)]<-"red"
+
+```
+
+# Microglia Highlighted
+```{r}
+Idents(Integrated)<-"cluster_full"
+Highlight<-DimPlot(Integrated,group.by = "cluster_full",cols=ColorsAllClusters,label=FALSE)+NoLegend()+
+  theme(plot.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        axis.line = element_blank(),
+        axis.title = element_blank(),
+        plot.margin = margin(0,0,0,0,"cm"),
+        panel.spacing = unit(0,"cm"))
+```
+
+
+
+# Treatment Comparison
+## Treatment comparison
+
+### Treatment Ontology
+```{r}
+Onto_1d$Time<-"1d BBBO"
+Onto_3d$Time<-"3d BBBO"
+Onto_All<-rbind(Onto_1d,Onto_3d)
+BP<-c("phagocytic vesicle",
+      "extracellular vesicle",
+      "chemokine activity",
+      "macrophage chemotaxis",
+      "lysosome",
+      "microglial cell activation",
+      "regulation of immune response",
+      "regulation of myeloid cell differentiation",
+      "regulation of cell cycle",
+      "endosome",
+      "late endosome",
+      "external encapsulating structure",
+      "response to interferon-gamma",
+      "response to stress",
+      "chemokine receptor binding")
+
+OntoPlotdata<-Onto_All[Onto_All$Term %in% BP,]
+OntoPlotdata$Time<-as.factor(OntoPlotdata$Time)
+KSLab<-bquote(~-Log[10] ~ italic(P[KS]))
+FisLab<-bquote(italic(P[Fis]))
+library(scales) 
+OntoPlotdata$Group<-recode(OntoPlotdata$Group,"Biological Process"="BP",
+                           "Cellular Component"="CC",
+                           "Molecular Function"="MF")
+OntoPlot<-ggplot(OntoPlotdata,aes(x=Time,y=Term,color=-log(PVal_KS),size=PCT))+
+  facet_grid(Group~.,scales = "free",space = "free")+
+  geom_point()+
+  theme_minimal()+
+  scale_color_gradient(low="#0E0028",high="#9A63FF",guide=guide_colorbar(title=KSLab,title.position = "top")) + scale_size_continuous(guide=guide_legend(title="Genes (%)",title.position = "top"),breaks = c(25,50,75),limits=c(25,75))+
+  theme(legend.position = "top",
+        axis.text.y = element_text(size=6),
+        legend.direction = "horizontal",
+        legend.box = "horizontal",
+        legend.key.height = unit(2,"mm"),
+        legend.key.size = unit(3,"mm"),
+        legend.spacing = unit(0,"mm"),
+        plot.margin = margin(0.5,0.5,0.5,0,"cm"),
+        axis.title = element_blank(),
+        legend.spacing.x = unit(0,"cm"),
+        legend.box.spacing = margin(-0.5,0.5,0.25,0,"cm"),
+        legend.text = element_text(size=6),
+        legend.title = element_text(size=8),
+        strip.text.y = element_text(size=10))
+```
+
+## Phase
+### Phase score heatmap
+```{r}
+#detach(package:plyr)
+
+Idents(Microglia)<-"Treatment"
+dot_data<-data.frame(Treatment=Microglia$Treatment,G1S=Microglia$G1S.Score,S=Microglia$S.Score,G2M=Microglia$G2M.Score,M=Microglia$M.Score,MG1=Microglia$MG1.Score)
+
+dot_data <- dot_data %>%
+  group_by(Treatment) %>%
+  summarize(G1S=mean(G1S),S=mean(S),G2M=mean(G2M),M=mean(M),MG1=mean(MG1)) %>%
+  pivot_longer(cols=c("G1S","S","G2M","M","MG1"))
+dot_data$Treatment_Short <- recode(dot_data$Treatment,
+                   "1d BBBO"="1d",
+                   "3d BBBO"="3d")
+HMPhase<-ggplot(dot_data,aes(x=Treatment_Short,y=name,fill=value))+geom_tile()+theme_minimal()+scale_fill_gradient2(low="blue",high = "red",mid="gray",limits=c(-2,2))+theme(axis.title = element_blank(),panel.grid = element_blank(),legend.position = "none",axis.text.x = element_text(size=6,angle=45),axis.text.y = element_text(size=6))
+  
+```
+
+### Treatment by Phase barplot
+```{r}
+dat<-as.data.frame(table(Microglia$Treatment,Microglia$Phase))
+dat$Treatment<-dat$Var1
+dat$Phase<-dat$Var2
+levels(dat$Treatment)<-c("Naive","Sham","1d","3d")
+
+BC1<-ggplot(dat) + 
+  geom_bar(position="fill",stat="identity",aes(x=Treatment,y=Freq,fill=Phase)) + scale_fill_manual(values = rev(ColorPhase),guide=guide_legend(nrow = 2,title.position = "top",title.hjust = 0.5)) + 
+  geom_tile(aes(y=0,x=Treatment),fill=ColorsTreatment[dat$Var1],height=0.01) + scale_y_continuous(breaks = c(0,0.5,1),labels=c("0%","50%","100%")) + theme_minimal() +
+  theme(legend.position="top",
+        axis.title.x = element_blank(),
+        legend.box = "vertical",
+        axis.title.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.text = element_text(size = 6),
+        legend.key.size = unit(0.25,"cm"),
+        panel.grid.major.x = element_blank(),
+        axis.text.x = element_text(vjust = 0.75,angle=45,hjust=0.2),
+        axis.text = element_text(size=6),
+        plot.margin=margin(0,0.25,0.25,0.5,"cm"),
+        legend.title = element_blank(),
+        legend.margin = margin(0,0,0,0,"cm"),
+        legend.box.margin = margin(0,0,-0.45,0,"cm")
+        )
+```
+
+# Heatmap
+```{r}
+clustermarkers_AllTreatment$pct.dif<-clustermarkers_AllTreatment$pct.1-clustermarkers_AllTreatment$pct.2
+Genes2Plot<-clustermarkers_AllTreatment%>%
+    group_by(cluster) %>%
+    top_n(n = 10, wt = pct.dif)
+Genes2Plot<-unique(Genes2Plot$gene)
+Idents(Microglia)<-"Treatment"
+Sub<-subset(Microglia,downsample=1000)
+Data<-t(Sub@assays$RNA@data[Genes2Plot,])
+Data<-cbind(as.data.frame(Data),Sub$Phase,Sub$Treatment)
+colnames(Data)[dim(Data)[2]-1]<-"Phase"
+colnames(Data)[dim(Data)[2]]<-"Treatment"
+Data<-Data[order(Data$Treatment,Data$Phase),]
+Treatment<-Data$Treatment
+Cluster<-Data$Cluster
+Phase<-Data$Phase
+Data<-Data[,1:(dim(Data)[2]-2)]
+Data<-Seurat::ScaleData(t(as.matrix(Data)))
+names(ColorsTreatment)<-levels(Microglia$Treatment)
+names(ColorPhase)<-rev(levels(Microglia$Phase))
+Top<-columnAnnotation(Treatment=anno_simple(Treatment,height = unit(2, "mm"),col = ColorsTreatment,border = TRUE), Phase=anno_simple(Phase,height=unit(2,"mm"),col=ColorPhase),show_legend=FALSE,show_annotation_name=FALSE)
+HM<-Heatmap(Data,
+            cluster_rows = FALSE,
+            cluster_columns = FALSE,
+            show_row_names = TRUE,
+            show_column_names = FALSE,
+            row_names_side = "left",
+            top_annotation = Top,
+            col=col_fun,
+            show_heatmap_legend = FALSE,
+            row_names_gp = gpar(fontsize=6,family="Arial"),
+            column_split = Treatment,
+            column_title_gp = gpar(fontsize=8,family="Arial"))
+HMLeg<-grid.grabExpr(draw(Legend(col_fun = col_fun, 
+                                  direction = "vertical",
+                                  grid_height = unit(0.5,"mm"),
+                                  grid_width=unit(1,"mm"),
+                                  at=c(-2,0,2),
+                                  labels_gp = gpar(col = "black",
+                                                  fontface="plain",
+                                                  fontsize=6),
+                                  title_gp = gpar(col = "black",
+                                                  fontface="plain",
+                                                  fontsize=8),
+                                  labels = c("-2", "0", "2"))))
+HM_Ready<-plot_grid(grid.grabExpr(draw(HM)),HMLeg,rel_widths = c(10,1),nrow=1)
+```
+# Volcanos
+
+```{r}
+toptable <- as.data.frame(clustermarkers_1d)
+toptable$lab <- rownames(clustermarkers_1d)
+Genes<-c("Ccl4","Fos","Ccl12","Spp1","Cx3cr1","Csf1r","Tmem119")
+toptable[toptable$p_val_adj>0.05,]$lab<-NA
+toptable$p_val_adj <- -log10(toptable$p_val_adj)
+toptable[!(toptable$lab %in% Genes),]$lab<-NA
+toptable[abs(toptable$avg_log2FC)<1,]$lab<-NA
+toptable[toptable$p_val_adj>200,]$p_val_adj<-200
+
+toptable[toptable$avg_log2FC>25,]$avg_log2FC<-25
+toptable[toptable$avg_log2FC < -25,]$avg_log2FC <- -25
+
+xlab<-bquote(~Log[2] ~ "fold change")
+ylab<-bquote(~-Log[10] ~ italic(P))
+Volcano1<-ggplot(toptable, aes(x = avg_log2FC, y = p_val_adj)) + th + geom_point(na.rm = TRUE,size=0.1,color=ColorsTreatment[3])+ labs(title = '1d BBBO v Sham')+xlab(xlab) + ylab(ylab) + geom_label_repel(aes(label=lab),size=3,label.padding = unit(0.1, "lines"))+theme(panel.grid = element_blank())
+
+toptable <- as.data.frame(clustermarkers_3d)
+toptable$lab <- rownames(clustermarkers_3d)
+Genes<-c("Spp1","Ccl12","Ccl6","Gapdh","Cx3cr1","Lpl","Trem2","Cd9")
+toptable[toptable$p_val_adj>0.05,]$lab<-NA
+toptable$p_val_adj <- -log10(toptable$p_val_adj)
+toptable[toptable$p_val_adj>200,]$p_val_adj<-200
+toptable[!(toptable$lab %in% Genes),]$lab<-NA
+toptable[abs(toptable$avg_log2FC)<1,]$lab<-NA
+toptable[toptable$avg_log2FC>25,]$avg_log2FC<-25
+toptable[toptable$avg_log2FC < -25,]$avg_log2FC <- -25
+xlab<-bquote(~Log[2] ~ "fold change")
+ylab<-bquote(~-Log[10] ~ italic(P))
+Volcano2<-ggplot(toptable, aes(x = avg_log2FC, y = p_val_adj)) + th + geom_point(na.rm = TRUE,size=0.1,color=ColorsTreatment[3])+ labs(title = '3d BBBO v Sham')+xlab(xlab) + ylab(ylab) + geom_label_repel(aes(label=lab),size=3,label.padding = unit(0.1, "lines"))+theme(panel.grid = element_blank())
+
+Volcanos<-plot_grid(Volcano1,Volcano2,nrow = 2,labels = c("b","c"))
+```
+
+
+
+# All Plots
+```{r}
+Blank<-ggplot() + theme_void()
+
+Left<-plot_grid(Highlight,Volcanos,nrow=2,rel_heights = c(1,3),labels=c("a",""))
+Phase<-plot_grid(HMPhase,BC1,nrow=1,labels=c("f","g"),align = "h",axis = "b",rel_widths = c(1,1.5))
+Right<-plot_grid(OntoPlot,Phase,Blank,nrow=3,rel_heights = c(2.5,1,1),labels = c("e","f","h"))
+
+Full<-plot_grid(Left,HM_Ready,Right,nrow=1,rel_widths = c(1,1.5,1.5),labels=c("","d",""))
+ggsave("Figure2.png",width = 8.5,height = 7,units = "in",bg="white")
+```
