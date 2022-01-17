@@ -108,7 +108,7 @@ Data<-Data[,1:(dim(Data)[2]-2)]
 Data<-Seurat::ScaleData(t(as.matrix(Data)))
 names(ColorsTreatment)<-levels(CAM$Treatment)
 Top<-columnAnnotation(Treatment=anno_simple(Treatment,height = unit(4, "mm"),col = ColorsTreatment,border = TRUE), Cluster=anno_simple(Cluster,height=unit(2,"mm"),col=ColorMacrophageClusters),show_legend=FALSE,show_annotation_name=FALSE)
-levels(Treatment)<-c("Naive","Sham","24h","72h")
+levels(Treatment)<-c("Naive","Sham","1d","3d")
 HM<-Heatmap(Data,
             cluster_rows = FALSE,
             cluster_columns = FALSE,
@@ -189,12 +189,12 @@ df<-as.data.frame(table(CAM$Treatment,CAM$Phase))
 df$Treatment<-df$Var1
 df$Phase<-df$Var2
 BC3<-ggplot(df, aes(y=Freq,x=Treatment,fill=Phase)) + 
-  scale_fill_manual(values = rev(ColorPhase),guide=guide_legend(ncol=1)) + 
+  scale_fill_manual(values = rev(ColorPhase),guide=guide_legend(nrow=1)) + 
   geom_bar(position="fill",stat="identity") + 
   geom_tile(aes(x=Treatment,y=0),fill=ColorsTreatment[df$Var1],height=0.03,color="black") + 
   theme_minimal() + 
   scale_y_continuous(breaks = c(0,0.5,1),labels=c("0%","50%","100%"),expand = c(0,0)) +
-  theme(legend.position="right",
+  theme(legend.position="top",
         axis.title = element_blank(),
         plot.margin=margin(0,0.5,0.5,0.5,"cm"),
         panel.grid = element_blank(),
@@ -296,9 +296,9 @@ Inset<-ggdraw(Dim1 + theme_half_open(12) + theme(plot.title = element_blank(),ax
     c(0.75),
     c(0.985),
     size = 12)
-Top<-plot_grid(Inset,Pie,BC3,nrow=1,align = "h",axis = "t",labels = c("A","C"))
-A<-plot_grid(HM_Ready,plot_grid(Feat,Volcanos,OntPlot,nrow=3,labels = c("G","","J")),nrow=1,labels = c("F"))
+Top<-plot_grid(Inset,Pie,BC3,nrow=1,align = "h",labels = c("a","c"))
+A<-plot_grid(HM_Ready,plot_grid(Feat,Volcanos,OntPlot,nrow=3,labels = c("g","","j")),nrow=1,labels = c("F"))
 Full<-plot_grid(Top,A,nrow=2,rel_heights = c(0.75,2))
-ggsave("Figure3.png",width = 8.5,height = 8.5,units = "in",bg="white")
+ggsave("Figure3-CAM.png",width = 8.5,height = 8.5,units = "in",bg="white")
 ```
 

@@ -172,7 +172,7 @@ Genes2Plot<-clustermarkers_AllTreatment%>%
 Genes2Plot<-unique(Genes2Plot$gene)
 Idents(Microglia)<-"Treatment"
 Sub<-subset(Microglia,downsample=1000)
-Data<-t(Sub@assays$RNA@data[Genes2Plot,])
+Data<-t(as.matrix(Sub@assays$RNA@data[Genes2Plot,]))
 Data<-cbind(as.data.frame(Data),Sub$Phase,Sub$Treatment)
 colnames(Data)[dim(Data)[2]-1]<-"Phase"
 colnames(Data)[dim(Data)[2]]<-"Treatment"
@@ -258,5 +258,5 @@ Phase<-plot_grid(HMPhase,BC1,nrow=1,labels=c("f","g"),align = "h",axis = "b",rel
 Right<-plot_grid(OntoPlot,Phase,Blank,nrow=3,rel_heights = c(2.5,1,1),labels = c("e","f","h"))
 
 Full<-plot_grid(Left,HM_Ready,Right,nrow=1,rel_widths = c(1,1.5,1.5),labels=c("","d",""))
-ggsave("Figure2.png",width = 8.5,height = 7,units = "in",bg="white")
+ggsave("Figure2-MicrogliaDEG.png",width = 8.5,height = 7,units = "in",bg="white")
 ```

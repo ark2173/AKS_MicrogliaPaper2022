@@ -1,0 +1,225 @@
+---
+title: "Calculating Concentrations"
+author: "Alina Kline-Schoder"
+date: "9/30/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+remove(list=ls())
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(rstatix)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(rstatix)
+library(ggpmisc)
+library(viridis)
+library(Seurat)
+library(RColorBrewer)
+
+ColorsTreatment<-c("#FFFFFF","#A3A3A3","#75A0B2","#205F83")
+Colors_FUS_Group_Broad<-c("#FFFFFF","#A3A3A3","#75A0B2")
+setwd("F:/Data/Sequencing/SavedData/InfiltrationData/")
+FACS<-read.csv('AllData-Table 1.csv')
+FACS<-na.omit(FACS)
+FACS<-separate(FACS,"Group",sep="_",into=c("Time","Treatment"),remove=FALSE)
+FACS<-na.omit(FACS)
+FACS <- FACS[FACS$Time!="120",]
+FACS <- FACS[FACS$Time!="672",]
+FACS$Time<-factor(FACS$Time)
+FACS$Time<-recode(FACS$Time,"0"="Naive",
+                          "24"="1d",
+                          "72"="3d")
+FACS$Treatment<-as.factor(FACS$Treatment)
+FACS$Group<-as.factor(FACS$Group)
+FACS$Phagocytes<-as.numeric(FACS$Phagocytes)
+Colorssub<-ColorsTreatment[3:4]
+
+library(circlize)
+```
+
+# Values across dif time points
+```{r}
+df<-FACS
+df$Treatment_Broad<-df$Treatment
+levels(df$Treatment_Broad)<-c("Control","Sham","FUS/MB","Sham")
+df$Treatment<-ordered(df$Treatment,levels=c("Control","MB","FUS","FUS/MB"))
+df<-df[df$Treatment=="FUS/MB",]
+dfexp<-df[df$Treatment=="FUS/MB",]
+dfexp<-pivot_longer(dfexp,cols = c("ICD","SCD.h"))
+dfexp$name<-factor(dfexp$name,levels=c("SCD.h","ICD"))
+c<-ggplot(dfexp,aes(x=Time,y=value))+geom_boxplot()+geom_point()+facet_wrap(name~.,nrow=1)+theme_bw()+ylab("dB")+ylim(-5,45)+theme(legend.position = "none")+xlab("Sacrifice Time")+  theme(legend.text = element_text(size=8),
+        legend.title = element_blank(),
+        axis.title = element_text(size=12),
+        axis.text = element_text(size=10),
+        legend.position = "top",
+        legend.background = element_blank(),
+        plot.margin = margin(0.25,0.25,0.25,0.5,"cm"),
+        panel.spacing = unit(0,"mm"),
+        legend.key.size = unit(0.1,"cm"),
+        legend.margin = margin(0,0,0,0,"cm"),
+        panel.grid = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(size=1),
+        panel.border = element_blank())
+```
+
+
+
+# Regression
+```{r}
+df <- FACS
+TextSize=3
+df$Treatment_Broad<-df$Treatment
+levels(df$Treatment_Broad)<-c("Control","Sham","FUS/MB","Sham")
+df$Treatment<-ordered(df$Treatment,levels=c("Control","MB","FUS","FUS/MB"))
+df$Time<-factor(df$Time)
+df$Time<-recode(df$Time,"0"="Control",
+                          "24"="1d",
+                          "72"="3d")
+
+df<-df[df$Treatment=="FUS/MB",]
+
+
+library(ggpmisc)
+b<-ggplot(df,aes(x=SCD.h,y=Phagocytes))+geom_point()+facet_grid(Time~.)+geom_smooth(method="lm",se = FALSE,fullrange=TRUE,color="black",size=0.5) + stat_fit_glance(method = "lm",
+                  method.args = list(formula = y ~ x),label.y = 0.95,label.x=0.1,
+                  mapping = aes(label = paste(expression(paste(R^2)),sprintf('~"="~%.2g', stat(r.squared)))),show.legend = TRUE, parse = TRUE,vstep = 0.1,size=TextSize)+ stat_fit_glance(method = "lm",
+                  method.args = list(formula = y ~ x),label.y = 0.8,label.x=0.1,
+                  mapping = aes(label = sprintf('P~"="~%.2g', stat(p.value))),show.legend = TRUE, parse = TRUE,vstep = 0.1,size=TextSize)+theme_bw()+theme(legend.position = "none",
+                                                                                                                                                           plot.margin = margin(0.25,0.25,0.25,0.25,unit = "cm"),
+                                                                                                                                                           axis.title = element_text(size=12,hjust=0.5))+ylab("Normalized Brain Macrophage Cell Count") + ylim(0,15)+xlim(-5,45)+geom_point()+xlab("SCDh (dB)")+  theme(
+        axis.title = element_text(size=12),
+        axis.text = element_text(size=10),
+        legend.position = "top",
+        legend.background = element_blank(),
+        plot.margin = margin(0.25,0.25,0.25,0.5,"cm"),
+        panel.spacing = unit(0,"mm"),
+        legend.key.size = unit(0.1,"cm"),
+        legend.margin = margin(0,0,0,0,"cm"),
+        panel.grid = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(size=1),
+        panel.border = element_blank(),
+        strip.background = element_blank())
+```
+
+
+# Boxplot
+```{r}
+a<-dim(FACS)
+FACS$obs<-1:as.numeric(a[1])
+df <- FACS
+df$Treatment_Broad<-df$Treatment
+levels(df$Treatment_Broad)<-c("Control","Sham","FUS/MB","Sham")
+df$Treatment<-ordered(df$Treatment,levels=c("Control","MB","FUS","FUS/MB"))
+
+# Boxplot
+df$Group_Broad<-df$Group
+df$Group_Broad<-recode(df$Group_Broad,
+                       "24_FUS"="24_Sham",
+                       "24_MB"="24_Sham",
+                       "72_MB"="72_Sham",
+                       "72_FUS"="72_Sham")
+
+#Add in stats
+stats <- df %>%
+  pairwise_t_test(Phagocytes ~ Group_Broad,p.adjust.method = "holm") %>%
+  add_significance("p.adj") %>%
+  separate(group1,sep="_",into=c("Time1","Treatment1"),remove=FALSE) %>%
+  separate(group2,sep="_",into=c("Time2","Treatment2"),remove=FALSE) %>%
+  mutate(Treatment=Treatment1) %>%
+  mutate(Time=Time1)
+
+# Control v other groups stats
+New<-as.data.frame(x=c("0_Control","24_Sham","24_FUS/MB","72_Sham","72_FUS/MB"))
+New$Val<-c(1,1.8,2.2,2.8,3.2)
+
+# vs control
+Control<-stats[stats$Treatment1=="Control",]
+colnames(New)<-c("group2","Val")
+Control<-left_join(Control,New,by="group2")
+Control$xmin=1
+Control$xmax<-Control$Val
+Control$Treatment<-Control$Treatment2
+
+# within the same time point
+SameTime<-stats[stats$Time1==stats$Time2,]
+colnames(New)<-c("group2","Val")
+SameTime<-left_join(SameTime,New,by="group2")
+colnames(New)<-c("group1","Val")
+SameTime<-left_join(SameTime,New,by="group1")
+SameTime$xmin=SameTime$Val.x
+SameTime$xmax=SameTime$Val.y
+
+# within the same treatment
+SameTreatment<-stats[stats$Treatment1==stats$Treatment2,]
+colnames(New)<-c("group2","Val")
+SameTreatment<-left_join(SameTreatment,New,by="group2")
+colnames(New)<-c("group1","Val")
+SameTreatment<-left_join(SameTreatment,New,by="group1")
+SameTreatment$xmin=SameTreatment$Val.x
+SameTreatment$xmax=SameTreatment$Val.y
+
+# Merging all the stat dfs together
+SameTreatmentFinal<-SameTreatment[,c("Treatment","group1","group2","p.adj.signif","xmin","xmax","p.adj")]
+ControlFinal<-Control[,c("Treatment","group1","group2","p.adj.signif","xmin","xmax","p.adj")]
+SameTimeFinal<-SameTime[,c("Treatment","group1","group2","p.adj.signif","xmin","xmax","p.adj")]
+AllStats<-rbind(SameTimeFinal,SameTreatmentFinal,ControlFinal)
+
+
+# Preparing dataframe for figure
+df$Treatment<-recode(df$Treatment,"Control"="Naive")
+df$Treatment_Broad<-recode(df$Treatment_Broad,"Control"="Naive")
+df$Treatment_Broad<-recode(df$Treatment_Broad,"FUS/MB"="FUS+MB")
+df$Treatment<-recode(df$Treatment,"FUS/MB"="BBBO")
+df$Treatment<-recode(df$Treatment,"MB"="MB Sham")
+df$Treatment<-recode(df$Treatment,"FUS"="FUS Sham")
+df$Time<-recode(df$Time,"Control"="Naive",
+                "72"="3d",
+                "24"="1d")
+
+
+Flow<-ggplot(df, aes(x = Time, y = Phagocytes))+
+  geom_boxplot(aes(color=Treatment_Broad),fill="white",show.legend = FALSE) + 
+  scale_color_manual(values = c("black","black","black")) + geom_point(aes(group=Treatment_Broad,fill=Treatment_Broad,shape=Treatment),
+                                                                       position=position_dodge(width=0.75),size=2) + 
+  xlab("Sacrifice Time") + 
+  ylab("Normalized Brain Macrophage Cell Count") + 
+  theme_bw() + 
+  scale_fill_manual(values = Colors_FUS_Group_Broad[1:3]) + 
+  scale_shape_manual(values=c(21, 24, 25,23)) + 
+  guides(shape = guide_legend(title.position = "top",title.hjust = 0.5,override.aes = list(shape = c(21, 24, 25,23), fill = c(Colors_FUS_Group_Broad[1],Colors_FUS_Group_Broad[2],Colors_FUS_Group_Broad[2],Colors_FUS_Group_Broad[3])),nrow = 1),fill="none") + 
+  stat_pvalue_manual(AllStats,y.position = 15,hide.ns = TRUE,xmin="xmin",xmax="xmax",step.increase = 0.1,color="black",label = "p.adj.signif",size=5,label.size = 5) + 
+  ylim(0,25) +
+  theme(legend.text = element_text(size=8),
+        legend.title = element_blank(),
+        axis.title = element_text(size=12),
+        axis.text = element_text(size=10),
+        legend.position = "top",
+        legend.background = element_blank(),
+        plot.margin = margin(0.25,0.25,0.25,0.5,"cm"),
+        panel.spacing = unit(0,"mm"),
+        legend.key.size = unit(0.1,"cm"),
+        legend.margin = margin(0,0,0,0,"cm"),
+        panel.grid = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(size=1),
+        panel.border = element_blank())
+
+```
+
+#Putting it together
+```{r}
+library(cowplot)
+
+A<-plot_grid(Flow,c,nrow=2,rel_heights = c(2,1),labels = c("a","b"))
+full<-plot_grid(A,b,nrow=1)
+ggsave("Figure5-Cavitation.png",width = 8.5,height = 5,units = "in",plot = full)
+```
+

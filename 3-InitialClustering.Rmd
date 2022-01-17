@@ -62,12 +62,12 @@ Integrated <- ScaleData(Integrated)
 Integrated <- RunPCA(Integrated)
 Integrated <- FindNeighbors(Integrated, dims = 1:30)
 Integrated <- FindClusters(Integrated, resolution = 0.2)
-Integrated <- RunUMAP(Integrated, dims = 1:30,metric = "euclidean")
+Integrated <- RunUMAP(Integrated, dims = 1:50,metric = "euclidean")
 
 Integrated$cell_type <- recode(Integrated$seurat_clusters,
-                               "11"="Unclear",
-                               "10"="Unclear",
-                               "9"="Unclear",
+                               "11"="NSCs",
+                               "10"="Monocytes",
+                               "9"="Neutrophils",
                                "8"="Microglia",
                                "7"="CAM",
                                "6"="Microglia",
@@ -94,9 +94,9 @@ Integrated$cluster_number <- recode(Integrated$seurat_clusters,
 Integrated$cluster_number<-ordered(Integrated$cluster_number,levels=c("0","1","2","3","4","5","6","7","8","9","10","11"))
 
 Integrated$cluster_full <- recode(Integrated$seurat_clusters,
-                               "11"="11: Unclear 3 (33)",
-                               "10"="10: Unclear 2 (55)",
-                               "9"="9: Unclear 1 (89)",
+                               "11"="11: NSCs (33)",
+                               "10"="10: Monocytes (55)",
+                               "9"="9: Neutrophils (89)",
                                "8"="6: Microglia 7 (111)",
                                "7"="8: CAM 2 (228)",
                                "6"="5: Microglia 6 (344)",
@@ -106,8 +106,28 @@ Integrated$cluster_full <- recode(Integrated$seurat_clusters,
                                "2"="7: CAM 1 (1059)",
                                "1"="1: Microglia 2 (3491)",
                                "0"="0: Microglia 1 (7615)")
+Integrated$cluster_full<-ordered(Integrated$cluster_full,levels=c("0: Microglia 1 (7615)","1: Microglia 2 (3491)","2: Microglia 3 (1033)","3: Microglia 4 (981)","4: Microglia 5 (622)","5: Microglia 6 (344)","6: Microglia 7 (111)","7: CAM 1 (1059)","8: CAM 2 (228)","9: Neutrophils (89)","10: Monocytes (55)","11: NSCs (33)"))
+  
+Integrated$cluster_partial <- recode(Integrated$seurat_clusters,
+                               "11"="NSCs",
+                               "10"="Monocytes",
+                               "9"="Neutrophils",
+                               "8"="Microglia 7",
+                               "7"="CAM 2",
+                               "6"="Microglia 6",
+                               "5"="Microglia 5",
+                               "4"="Microglia 4",
+                               "3"="Microglia 3",
+                               "2"="CAM 1",
+                               "1"="Microglia 2",
+                               "0"="Microglia 1")
+  
+  
+Integrated$cluster_partial<-ordered(Integrated$cluster_partial,levels=c("Microglia 1","Microglia 2","Microglia 3","Microglia 4","Microglia 5","Microglia 6","Microglia 7","CAM 1","CAM 2","Neutrophils","Monocytes","NSCs"))
 
 ```
+
+
 
 ```{r}
 Idents(Integrated)<-"cell_type"

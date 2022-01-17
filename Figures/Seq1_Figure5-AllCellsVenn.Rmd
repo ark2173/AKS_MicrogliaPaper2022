@@ -1,0 +1,166 @@
+---
+title: "All Cells"
+author: Alina Kline-Schoder
+date: | 
+      | Started on 06/01/2021
+      | Compiled: `r format(Sys.Date(), "%B %d, %Y")`
+output:
+  github_document:
+    toc: yes
+---
+
+
+```{r message = FALSE, echo = FALSE}
+rm(list = ls())
+#Sys.setenv(JAVA_HOME = "C:/Program Files (x86)/Java/jdk1.8.0_311/")
+library(cowplot)
+library(Seurat)
+require(ggdendro)
+require(Rmisc)
+library(Matrix)
+library(MASS)
+library(xtable)
+library(Matrix.utils)
+library(reshape2)
+library(BiocManager)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(rstatix)
+library(ggpmisc)
+library(gridExtra)
+library(ComplexHeatmap)
+library(RColorBrewer)
+library(UpSetR)
+library(tidyverse)
+library(rJava)
+library(venneuler)
+library(grid)
+library(ggVennDiagram)
+#library(gridGraphcs)
+
+ColorsTreatment<-c("#BD6B73","#CCAD8F","#81C3D7","#16425B")
+ColorsAllClusters<-c("#66C2A5","#FC8D62","#8DA0CB","#E78AC3","#C59797","#A6D854","#FFD92F","#BA95C7","#D3D942","#FFD92F","#B1A884","#BA95C7")
+setwd("F:/Data/Sequencing/SavedData")
+load("7-CAMFigure.RData")
+load("5-MicrogliaFigures.RData")
+load("3-AllCells.RData")
+
+Microglia_1d<-clustermarkers_1d
+Microglia_3d<-clustermarkers_3d
+CAM_1d<-Markers_1d
+CAM_3d<-Markers_3d
+```
+# Loading Data 4 Venn
+```{r}
+Microglia_1d_Up<-Microglia_1d[Microglia_1d$p_val_adj<0.05&Microglia_1d$avg_log2FC>0,]
+Microglia_1d_Down<-Microglia_1d[Microglia_1d$p_val_adj<0.05&Microglia_1d$avg_log2FC<0,]
+
+CAM_1d_Up<-CAM_1d[CAM_1d$p_val_adj<0.05&CAM_1d$avg_log2FC>0,]
+CAM_1d_Down<-CAM_1d[CAM_1d$p_val_adj<0.05&CAM_1d$avg_log2FC<0,]
+
+Microglia_3d_Up<-Microglia_3d[Microglia_3d$p_val_adj<0.05&Microglia_3d$avg_log2FC>0,]
+Microglia_3d_Down<-Microglia_3d[Microglia_3d$p_val_adj<0.05&Microglia_3d$avg_log2FC<0,]
+
+CAM_3d_Up<-CAM_3d[CAM_3d$p_val_adj<0.05&CAM_3d$avg_log2FC>0,]
+CAM_3d_Down<-CAM_3d[CAM_3d$p_val_adj<0.05&CAM_3d$avg_log2FC<0,]
+
+Microglia_1d_Up<-cbind(rownames(Microglia_1d_Up),"Microglia_1d_Up")
+Microglia_1d_Down<-cbind(rownames(Microglia_1d_Down),"Microglia_1d_Down")
+CAM_1d_Up<-cbind(rownames(CAM_1d_Up),"CAM_1d_Up")
+CAM_1d_Down<-cbind(rownames(CAM_1d_Down),"CAM_1d_Down")
+Microglia_3d_Up<-cbind(rownames(Microglia_3d_Up),"Microglia_3d_Up")
+Microglia_3d_Down<-cbind(rownames(Microglia_3d_Down),"Microglia_3d_Down")
+CAM_3d_Up<-cbind(rownames(CAM_3d_Up),"CAM_3d_Up")
+CAM_3d_Down<-cbind(rownames(CAM_3d_Down),"CAM_3d_Down")
+```
+
+
+# Venn Diag Up
+```{r}
+All<-c("Tgfbi","Gapdh","Cstb","Lgals3") #happy
+MA<-c("Ifitm1","Ccr1","Cytip") #happy
+MG<-c("Ctsb","Ccl12","Cd63") #happy
+G_24h<-c("Ccl4","Ccl3","Tnf") #happy
+G_72h<-c("Ifi30","Ifit3","Ly6c2") #happy
+G_MG_24<-c("Cd9","Gas6","Hexb") #happy
+G_MG_72<-c("TBD","TBD","TBD")
+G_MG_24<-c("TBD","TBD","TBD")
+G_MA_72<-c("Ifitm6","Il1a","Olfm1") #happy
+G_NotMA24<-c("Ms4a6c","TBD","TBD")
+tab<-rbind(Microglia_1d_Up,Microglia_3d_Up,CAM_1d_Up,CAM_3d_Up)
+colnames(tab)<-c("Gene","Treatment")
+v <- venneuler(data.frame(tab))
+v$labels<-NA
+v$centers[,"x"]<-(v$centers[,"x"]-0.5)*-1+0.5
+plot(v, cex.main = 1)
+  text(labels = G_72h,y=c(0.7,0.7-0.02,0.7-0.04),x=0.525,cex=0.75)
+  text(labels = All,y=c(0.5,0.5-0.02,0.5-0.04,0.5-0.06),x=0.575,cex=0.75)
+  text(labels = MA,y=c(0.5,0.5-0.02,0.5-0.04),x=0.665,xpd=NA,cex=0.75)
+  text(labels = MG,y=c(0.5,0.5-0.02,0.5-0.04),x=0.35,xpd=NA,cex=0.75)
+  text(labels = G_MG_72,y=c(0.7,0.7-0.02,0.7-0.04),x=0.35,xpd=NA,cex=0.75)
+  text(labels = G_MA_72,y=c(0.65,0.65-0.02,0.65-0.04),x=0.675,xpd=NA,cex=0.75)
+  text(labels = G_MG_24,y=c(0.275,0.275-0.02,0.275-0.04),x=0.4,xpd=NA,cex=0.75)
+  text(labels = G_NotMA24,y=c(0.575,0.575-0.02,0.575-0.04),x=0.475,xpd=NA,cex=0.75)
+  text(labels = c("1d Microglia", "1d CAM","3d Microglia","3d CAM"),x=c(0.3,0.725,0.35,0.85),y=c(0.775,0.4,0.1,0.5),xpd=NA)
+  title("Down-Regulated Genes")
+
+  
+ plot(v, cex.main = 1)
+  text(labels = c("1d Microglia", "1d CAM","3d Microglia","3d CAM"),x=c(0.1,0.8,0.1,0.75),y=c(0.775,0.4,0.3,0.65),xpd=NA)
+  title("Down-Regulated Genes") 
+  
+  
+dev.copy(png,"Figure7-VennDown.png", width=800, height=800,res=200)
+```
+
+```{r}
+All<-c("Tgfbi","Gapdh","Cstb","Lgals3") #happy
+MA<-c("Ifitm1","Ccr1","Cytip") #happy
+MG<-c("Ctsb","Ccl12","Cd63") #happy
+G_24h<-c("Ccl4","Ccl3","Tnf") #happy
+G_72h<-c("Ifi30","Ifit3","Ly6c2") #happy
+G_MG_24<-c("Cd9","Gas6","Hexb") #happy
+G_MG_72<-c("TBD","TBD","TBD")
+G_MG_24<-c("TBD","TBD","TBD")
+G_MA_72<-c("Ifitm6","Il1a","Olfm1") #happy
+G_NotMA24<-c("Ms4a6c","TBD","TBD")
+tab<-rbind(Microglia_1d_Down,Microglia_3d_Down,CAM_1d_Down,CAM_3d_Down)
+colnames(tab)<-c("Gene","Treatment")
+v <- venneuler(data.frame(tab))
+v$labels<-NA
+v$centers[,"x"]<-(v$centers[,"x"]-0.5)*-1+0.5
+
+plot(v, cex.main = 1)
+  text(labels = G_72h,y=c(0.7,0.7-0.02,0.7-0.04),x=0.525,cex=0.75)
+  text(labels = All,y=c(0.5,0.5-0.02,0.5-0.04,0.5-0.06),x=0.575,cex=0.75)
+  text(labels = MA,y=c(0.5,0.5-0.02,0.5-0.04),x=0.665,xpd=NA,cex=0.75)
+  text(labels = MG,y=c(0.5,0.5-0.02,0.5-0.04),x=0.35,xpd=NA,cex=0.75)
+  text(labels = G_MG_72,y=c(0.7,0.7-0.02,0.7-0.04),x=0.35,xpd=NA,cex=0.75)
+  text(labels = G_MA_72,y=c(0.65,0.65-0.02,0.65-0.04),x=0.675,xpd=NA,cex=0.75)
+  text(labels = G_MG_24,y=c(0.275,0.275-0.02,0.275-0.04),x=0.4,xpd=NA,cex=0.75)
+  text(labels = G_NotMA24,y=c(0.575,0.575-0.02,0.575-0.04),x=0.475,xpd=NA,cex=0.75)
+  text(labels = c("1d Microglia", "1d CAM","3d Microglia","3d CAM"),x=c(0.3,0.725,0.45,0.9),y=c(0.775,0.4,0.05,0.35),xpd=NA)
+  title("Up-Regulated Genes")
+
+  
+plot(v, cex.main = 1)
+  text(labels = c("1d Microglia", "1d CAM","3d Microglia","3d CAM"),x=c(0.1,0.8,0.15,0.75),y=c(0.775,0.4,0.3,0.7),xpd=NA)
+  title("Up-Regulated Genes")
+dev.copy(png,"Figure7-VennUp.png", width=800, height=800,res=200)
+
+```
+
+
+
+```{r}
+Blank<-ggplot() + theme_void()
+
+plot_grid(Blank,plot_grid(Blank,Blank,nrow=1,labels = c("b","c")),labels = c("a",""),nrow=2)
+ggsave("Figure5.png",width = 7.5,height = 3)
+```
+
