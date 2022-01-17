@@ -96,8 +96,13 @@ Violin<-ggplot(data,aes(x=id,y=features.plot))+
 ```
 
 ```{r}
-AllCells<-plot_grid(Dim,Violin,labels=c("e","f"),rel_widths = c(1.25,1))
-ggsave("Figure1-AllCells.png",width = 7,height = 6,units = "in",bg="white")
+Placeholder<-ggplot()+geom_blank()+theme_void()
+
+MRIs<-plot_grid(Placeholder,Placeholder,nrow=1,labels=c("b","c"))
+Bottom<-plot_grid(Dim,Violin,labels=c("d","e"),rel_widths = c(1.25,1))
+
+AllCells<-plot_grid(Placeholder,MRIs,Bottom,nrow=3,rel_heights=c(1,2,3),labels=c("a","",""))
+ggsave("Figure1-AllCells.png",width = 8.5,height = 11,units = "in",bg="white")
 ```
 
 

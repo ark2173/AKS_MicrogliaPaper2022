@@ -91,7 +91,7 @@ b<-ggplot(df,aes(x=SCD.h,y=Phagocytes))+geom_point()+facet_rep_grid(Time~.)+geom
                   method.args = list(formula = y ~ x),label.y = 0.8,label.x=0.1,
                   mapping = aes(label = sprintf('P~"="~%.2g', stat(p.value))),show.legend = TRUE, parse = TRUE,vstep = 0.1,size=TextSize)+theme_bw()+theme(legend.position = "none",
                                                                                                                                                            plot.margin = margin(0.25,0.25,0.25,0.25,unit = "cm"),
-                                                                                                                                                           axis.title = element_text(size=12,hjust=0.5))+ylab("Normalized Brain Macrophage Cell Count") + ylim(0,15)+xlim(-5,45)+geom_point()+xlab("SCDh (dB)")+  theme(
+                                                                                                                                                           axis.title = element_text(size=12,hjust=0.5))+ylab("Normalized Brain Macrophage Cell Count") + ylim(0,15)+xlim(-5,45)+geom_point()+xlab("SCD (dB)")+  theme(
         axis.text = element_text(size=10),
         legend.background = element_blank(),
         plot.margin = margin(0.25,0.25,0.25,0.5,"cm"),

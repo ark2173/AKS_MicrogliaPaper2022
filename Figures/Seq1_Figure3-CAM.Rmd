@@ -37,6 +37,7 @@ library(here)
 library(RColorBrewer)
 library(sjmisc)
 library(ggrepel)
+library(viridis)
 library(ComplexHeatmap)
 setwd("F:/Data/Sequencing/SavedData")
 load("7-CAMFigure.RData")
@@ -161,7 +162,6 @@ toptable$yvals <- -log10(toptable[['p_val_adj']])
 xlab<-bquote(~Log[2] ~ "fold change")
 ylab<-bquote(~-Log[10] ~ italic(P))
 Volcano72<-ggplot(toptable, aes(x = xvals, y = yvals)) + th + geom_point(na.rm = TRUE,size=0.1,fill=ColorsTreatment[4])+ labs(title = '3d BBBO v Sham')+xlab(xlab) + ylab(ylab) + geom_label_repel(aes(label=lab),size=3,label.padding = unit(0.1, "lines"))+theme(panel.grid = element_blank())
-Volcanos<-plot_grid(Volcano24,Volcano72,nrow = 1,labels = c("H","I"))
 ```
 
 # bar charts
@@ -226,7 +226,7 @@ library(scales)
 OntPlot<-ggplot(OntoPlotdata,aes(x=Treatment,y=Term))+
   geom_point(aes(color=-log(PVal_KS),size=PCT))+
   theme_minimal()+
-  scale_color_gradient(low="#0E0028",high="#9A63FF",guide=guide_colorbar(title=KSLab,title.position = "top")) +
+  scale_color_viridis(guide=guide_colorbar(title=KSLab,title.position = "top")) +
   scale_size_continuous(guide=guide_legend(title="Genes (%)",title.position = "top"))+
   geom_tile(aes(x=Treatment,y=0),fill=c(ColorsTreatment[as.numeric(OntoPlotdata$Treatment)+2]),height=0.1)+
   theme(legend.position = "right",
@@ -296,8 +296,9 @@ Inset<-ggdraw(Dim1 + theme_half_open(12) + theme(plot.title = element_blank(),ax
     c(0.75),
     c(0.985),
     size = 12)
-Top<-plot_grid(Inset,Pie,BC3,nrow=1,align = "h",labels = c("a","c"))
-A<-plot_grid(HM_Ready,plot_grid(Feat,Volcanos,OntPlot,nrow=3,labels = c("g","","j")),nrow=1,labels = c("F"))
+Volcanos<-plot_grid(Volcano24,Volcano72,nrow = 1,labels = c("g","h"))
+Top<-plot_grid(Inset,Pie,BC3,nrow=1,align = "h",labels = c("a","c","d"))
+A<-plot_grid(HM_Ready,plot_grid(Feat,Volcanos,OntPlot,nrow=3,labels = c("f","","i")),nrow=1,labels = c("e"))
 Full<-plot_grid(Top,A,nrow=2,rel_heights = c(0.75,2))
 ggsave("Figure3-CAM.png",width = 8.5,height = 8.5,units = "in",bg="white")
 ```
