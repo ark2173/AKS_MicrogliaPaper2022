@@ -33,6 +33,7 @@ library(rstatix)
 library(ggpmisc)
 library(gridExtra)
 library(here)
+library(circlize)
 setwd("F:/Data/Sequencing/SavedData")
 load("4-Microglia.RData")
 setwd("F:/Data/Sequencing/Files/")
@@ -196,15 +197,13 @@ Onto_3d<-Onto_3d[Onto_3d$Significant>1,]
 
 # Saving for figures - Microglia DEG
 ```{r}
-Idents(Microglia)<-"seurat_clusters"
-clustermarkers <- FindAllMarkers(Microglia, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
-markersDAM<-FindMarkers(Microglia,ident.1 = "4")
+markersDAM<-FindMarkers(Microglia,ident.1 = "2")
 setwd("F:/Data/Sequencing/SavedData")
 save(markersDAM,Onto_3d,Onto_1d,clustermarkers_AllTreatment,clustermarkers_3d,clustermarkers_1d,Microglia,Data_New_Sub,clustermarkers,file="5-MicrogliaFigure2.RData")
 ```
 
 
-# DAM subsetting & DEG
+
 ```{r}
 Idents(Microglia)<-"seurat_clusters"
 DAMMarkers<-FindMarkers(Microglia,ident.1 = "2")
@@ -213,26 +212,46 @@ Idents(DAM)<-"Treatment"
 DAM_markers_treatment<-FindAllMarkers(DAM,only.pos = T)
 DAM_markers_treatment$gene<-rownames(DAM_markers_treatment)
 marks <- DAM_markers_treatment[DAM_markers_treatment$p_val_adj<0.05,]
-marks_1d <- marks[marks$cluster=="1d BBBO",]
-marks_3d <- marks[marks$cluster=="3d BBBO",]
-```
-
-```{r}
-DAM_Onto_1d<-GO_Search(sub2,marks_1d)
+marks_1d <- FindMarkers(DAM,ident.1 = "1d BBBO",ident.2 = "Sham")
+marks_3d <- FindMarkers(DAM,ident.1 = "3d BBBO",ident.2 = "Sham")
+marks_1d<-marks_1d[marks_1d$avg_log2FC>0,]
+marks_1d<-marks_1d[marks_1d$p_val_adj<0.05,]
+library(topGO)
+DAM_Onto_1d<-GO_Search(DAM,marks_1d)
 DAM_Onto_1d$PCT<-(DAM_Onto_1d$Significant/DAM_Onto_1d$Annotated)*100
 DAM_Onto_1d<-DAM_Onto_1d[DAM_Onto_1d$Annotated>10,]
 DAM_Onto_1d<-DAM_Onto_1d[DAM_Onto_1d$Significant>1,]
 
-DAM_Onto_3d<-GO_Search(sub2,marks_3d)
+marks_3d<-marks_3d[marks_3d$avg_log2FC>0,]
+marks_3d<-marks_3d[marks_3d$p_val_adj<0.05,]
+DAM_Onto_3d<-GO_Search(DAM,marks_3d)
 DAM_Onto_3d$PCT<-(DAM_Onto_3d$Significant/DAM_Onto_3d$Annotated)*100
 DAM_Onto_3d<-DAM_Onto_3d[DAM_Onto_3d$Annotated>10,]
 DAM_Onto_3d<-DAM_Onto_3d[DAM_Onto_3d$Significant>1,]
+
+tab<-as.data.frame(table(Microglia$orig.ident,Microglia$Treatment,Microglia$seurat_clusters))
+tab<-tab[tab$Var3=="2",]
+Tota<-as.data.frame(table(Microglia$orig.ident,Microglia$Treatment))
+Tota$Full<-paste(Tota$Var1,Tota$Var2)
+tab$Full<-paste(tab$Var1,tab$Var2)
+rownames(Tota)<-Tota$Full
+
+tab$Freq_Adj<-tab$Freq/Tota[tab$Full,]$Freq
+tab[tab$Freq==0,]$Freq_Adj<-0
+tab<-tab[tab$Full!="EA001 Naive",]
+tab<-tab[tab$Full!="EA001 1d BBBO",]
+tab<-tab[tab$Full!="EA001 3d BBBO",]
+
+tab<-tab[tab$Full!="EA002 Naive",]
+tab<-tab[tab$Full!="EA002 Sham",]
+tab<-tab[tab$Full!="EA002 3d BBBO",]
+tab<-tab[tab$Full!="EA005 1d BBBO",]
+
+ggplot(tab,aes(x=Var2,y=Freq_Adj))+geom_point()+scale_y_continuous(limits=c(0,1))+stat_compare_means(method = "anova")
 ```
 
 # Saving for figures - Microglia DEG
 ```{r}
-Idents(Microglia)<-"seurat_clusters"
-clustermarkers <- FindAllMarkers(Microglia, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
 setwd("F:/Data/Sequencing/SavedData")
-save(DAM_Onto_1d,DAM_Onto_3d,DAM_markers_treatment,DAMMarkers,Onto_3d,Onto_1d,clustermarkers_AllTreatment,clustermarkers_3d,clustermarkers_1d,Microglia,clustermarkers,file="5-MicrogliaFigures.RData")
+save(DAMMarkers,DAM_Onto_1d,DAM_Onto_3d,DAM_markers_treatment,DAMMarkers,Onto_3d,Onto_1d,clustermarkers_AllTreatment,clustermarkers_3d,clustermarkers_1d,Microglia,clustermarkers,file="5-MicrogliaFigures.RData")
 ```

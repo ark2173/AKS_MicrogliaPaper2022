@@ -1,0 +1,190 @@
+---
+title: "Integrating Data"
+author: Alina Kline-Schoder
+date: | 
+      | Started on 04/19/2021
+      | Compiled: `r format(Sys.Date(), "%B %d, %Y")`
+output:
+  github_document:
+    toc: yes
+---
+# Microglia Data analysis
+
+```{r message = FALSE, echo = FALSE}
+rm(list = ls())
+library(Seurat)
+require(ggdendro)
+require(Rmisc)
+library(Matrix)
+library(MASS)
+library(xtable)
+library(Matrix.utils)
+library(reshape2)
+library(BiocManager)
+library(rhdf5)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(rstatix)
+library(ggpmisc)
+library(gridExtra)
+library(here)
+library(ggrepel)
+setwd("F:/Data/Sequencing/SavedData")
+load("4-Microglia.RData")
+setwd("F:/Data/Sequencing/Files/")
+source("Ontology.R")
+DefaultAssay(Microglia)<-"RNA"
+Microglia<-ScaleData(Microglia)
+logFC<-2
+p_val<-100
+```
+  
+# Clustering
+```{r}
+DefaultAssay(Microglia)<-"integrated"
+Microglia <- ScaleData(Microglia)
+Microglia <- RunPCA(Microglia)
+ElbowPlot(Microglia)
+Microglia <- FindNeighbors(Microglia, dims = 1:15)
+Microglia <- FindClusters(Microglia, resolution = 0.5)
+Microglia <- RunUMAP(Microglia, dims = 1:15,metric = "euclidean")
+DimPlot(Microglia)
+```
+
+# volcano plot for each cluster
+## Cluster 0
+```{r}
+mark0 <- FindMarkers(Microglia,ident.1 = "0")
+toptable <- as.data.frame(mark0)
+toptable$lab <- rownames(mark0)
+toptable$p_val_adj <- -log10(toptable[['p_val_adj']])
+toptable[abs(toptable$avg_log2FC)<logFC&toptable$p_val_adj<p_val,]$lab<-""
+
+ggplot(toptable, aes(x = avg_log2FC, y = p_val_adj)) + 
+    geom_point() +
+    geom_text_repel(aes(label=lab),max.overlaps = 20)+
+    theme(panel.grid = element_blank())+labs(title="Cluster 0")
+  
+```
+## Cluster 1
+```{r}
+mark1 <- FindMarkers(Microglia,ident.1 = "1")
+toptable <- as.data.frame(mark1)
+toptable$lab <- rownames(mark1)
+toptable$p_val_adj <- -log10(toptable[['p_val_adj']])
+toptable[abs(toptable$avg_log2FC)<logFC&toptable$p_val_adj<p_val,]$lab<-""
+
+ggplot(toptable, aes(x = avg_log2FC, y = p_val_adj)) + 
+    geom_point() +
+    geom_text_repel(aes(label=lab),max.overlaps = 20)+
+    theme(panel.grid = element_blank())+labs(title="Cluster 1")
+```
+## Cluster 2
+```{r}
+logFC<-2
+p_val<-200
+mark2 <- FindMarkers(Microglia,ident.1 = "2")
+toptable <- as.data.frame(mark2)
+toptable$lab <- rownames(mark2)
+toptable$p_val_adj <- -log10(toptable[['p_val_adj']])
+toptable[abs(toptable$avg_log2FC)<logFC&toptable$p_val_adj<p_val,]$lab<-""
+
+ggplot(toptable, aes(x = avg_log2FC, y = p_val_adj)) + 
+    geom_point() +
+    geom_text_repel(aes(label=lab),max.overlaps = 50)+
+    theme(panel.grid = element_blank())+labs(title="Cluster 2")
+```
+
+## Cluster 3
+```{r}
+logFC<-2
+p_val<-100
+mark3 <- FindMarkers(Microglia,ident.1 = "3")
+toptable <- as.data.frame(mark3)
+toptable$lab <- rownames(mark3)
+toptable$p_val_adj <- -log10(toptable[['p_val_adj']])
+toptable[abs(toptable$avg_log2FC)<logFC&toptable$p_val_adj<p_val,]$lab<-""
+
+ggplot(toptable, aes(x = avg_log2FC, y = p_val_adj)) + 
+    geom_point() +
+    geom_text_repel(aes(label=lab),max.overlaps = 20)+
+    theme(panel.grid = element_blank())+labs(title="Cluster 3")
+```
+
+## Cluster 4
+```{r}
+mark4 <- FindMarkers(Microglia,ident.1 = "4")
+toptable <- as.data.frame(mark4)
+toptable$lab <- rownames(mark4)
+toptable$p_val_adj <- -log10(toptable[['p_val_adj']])
+toptable[abs(toptable$avg_log2FC)<logFC&toptable$p_val_adj<p_val,]$lab<-""
+
+ggplot(toptable, aes(x = avg_log2FC, y = p_val_adj)) + 
+    geom_point() +
+    geom_text_repel(aes(label=lab),max.overlaps = 20)+
+    theme(panel.grid = element_blank())+labs(title="Cluster 4")
+```
+
+## Cluster 5
+```{r}
+mark5 <- FindMarkers(Microglia,ident.1 = "5")
+toptable <- as.data.frame(mark5)
+toptable$lab <- rownames(mark5)
+toptable$p_val_adj <- -log10(toptable[['p_val_adj']])
+toptable[abs(toptable$avg_log2FC)<logFC&toptable$p_val_adj<p_val,]$lab<-""
+
+ggplot(toptable, aes(x = avg_log2FC, y = p_val_adj)) + 
+    geom_point() +
+    geom_text_repel(aes(label=lab),max.overlaps = 20)+
+    theme(panel.grid = element_blank())+labs(title="Cluster 5")
+```
+
+## Cluster 6
+```{r}
+mark6 <- FindMarkers(Microglia,ident.1 = "6")
+toptable <- as.data.frame(mark6)
+toptable$lab <- rownames(mark6)
+toptable$p_val_adj <- -log10(toptable[['p_val_adj']])
+toptable[abs(toptable$avg_log2FC)<logFC&toptable$p_val_adj<p_val,]$lab<-""
+
+ggplot(toptable, aes(x = avg_log2FC, y = p_val_adj)) + 
+    geom_point() +
+    geom_text_repel(aes(label=lab),max.overlaps = 20)+
+    theme(panel.grid = element_blank())+labs(title="Cluster 6")
+```
+
+## Cluster 7
+```{r}
+mark7 <- FindMarkers(Microglia,ident.1 = "7")
+toptable <- as.data.frame(mark7)
+toptable$lab <- rownames(mark7)
+toptable$p_val_adj <- -log10(toptable[['p_val_adj']])
+toptable[abs(toptable$avg_log2FC)<logFC&toptable$p_val_adj<p_val,]$lab<-""
+
+ggplot(toptable, aes(x = avg_log2FC, y = p_val_adj)) + 
+    geom_point() +
+    geom_text_repel(aes(label=lab),max.overlaps = 20)+
+    theme(panel.grid = element_blank())+labs(title="Cluster 7")
+```
+
+## Cluster 8
+```{r}
+mark8 <- FindMarkers(Microglia,ident.1 = "8")
+toptable <- as.data.frame(mark8)
+toptable$lab <- rownames(mark8)
+toptable$p_val_adj <- -log10(toptable[['p_val_adj']])
+toptable[abs(toptable$avg_log2FC)<logFC&toptable$p_val_adj<p_val,]$lab<-""
+
+ggplot(toptable, aes(x = avg_log2FC, y = p_val_adj)) + 
+    geom_point() +
+    geom_text_repel(aes(label=lab),max.overlaps = 20)+
+    theme(panel.grid = element_blank())+labs(title="Cluster 8")
+```
+
+
+
