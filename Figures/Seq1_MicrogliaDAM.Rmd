@@ -22,7 +22,6 @@ library(xtable)
 library(Matrix.utils)
 library(reshape2)
 library(BiocManager)
-library(rhdf5)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
@@ -35,9 +34,11 @@ library(ggpmisc)
 library(gridExtra)
 library(here)
 library(circlize)
-setwd("F:/Data/Sequencing/SavedData")
-load("5-MicrogliaFigures.RData")
+library(sjmisc)
+#setwd("F:/Data/Sequencing/SavedData")
+setwd("/Users/alinakline-schoder/Documents/Github.nosync/Data")
 load("3-AllCells.RData")
+load("5-MicrogliaFigures.RData")
 col_fun = colorRamp2(c(-2, 0, 2), c("blue", "#D3D3D3", "red"))
 
 th <- theme_bw() + theme(legend.background = element_rect(),
@@ -48,6 +49,7 @@ th <- theme_bw() + theme(legend.background = element_rect(),
                                                                   vjust = 0.5), legend.position = "none",
                          axis.title = element_text(size=8),
                          panel.grid.major = element_blank())
+ColorsAllClusters<-c("#66C2A5","#FC8D62","#8DA0CB","#E78AC3","#C59797","#A6D854","#FFD92F","#BA95C7","#D3D942","#FFD92F","#B1A884","#BA95C7")
 ColorsAllClusters[!str_contains("Microglia",levels(Integrated$cluster_full),switch = T)]<-"gray"
 ColorsAllClusters[str_contains("Microglia",levels(Integrated$cluster_full),switch = T)]<-"red"
 
@@ -84,7 +86,6 @@ Dim1<-DimPlot(Microglia,group.by = "clusters_labeled",label=FALSE,cols = ColorMa
 toptable <- as.data.frame(DAMMarkers)
 toptable$lab <- rownames(DAMMarkers)
 Genes<-c("Cd9","Lpl","Csf1","Spp1","Cst7","Apoe","Axl","Tmem119","P2ry12","Ctsb","Ctsz","Selplg","Cd63","Pnck","Clmp","Ccr6","Trem2")
-
 toptable[!(toptable$lab %in% Genes),]$lab<-NA
 toptable[toptable$p_val_adj>0.05,]$lab<-NA
 toptable[abs(toptable$avg_log2FC)<1,]$lab<-NA
@@ -176,4 +177,13 @@ DotPlot(Microglia,group.by = "seurat_clusters",features=DAMMarkers)
 
 
 # Putting it all together
+```{r}
+Inset<-ggdraw(Dim1 + theme_half_open(12) + theme(plot.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),legend.position = c(0,0.1))) +
+  draw_plot(Highlight, .7, .7, .3, .3) +
+  draw_plot_label(
+    c("b"),
+    c(0.75),
+    c(0.985),
+    size = 12)
+```
 
