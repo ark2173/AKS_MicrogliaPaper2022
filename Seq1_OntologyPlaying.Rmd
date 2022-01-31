@@ -1,0 +1,171 @@
+---
+title: "Microglia Figure"
+author: Alina Kline-Schoder
+date: | 
+      | Started on 06/01/2021
+      | Compiled: `r format(Sys.Date(), "%B %d, %Y")`
+output:
+  github_document:
+    toc: yes
+---
+
+
+```{r message = FALSE, echo = FALSE}
+rm(list = ls())
+library(cowplot)
+library(Seurat)
+library(ggplot2)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(RColorBrewer)
+library(ComplexHeatmap)
+library(ggrepel)
+library(ggVennDiagram)
+library(circlize)
+library(tidyr)
+library(dplyr)
+library(sjmisc)
+library(viridis)
+#setwd("F:/Data/Sequencing/SavedData")
+setwd("/Users/alinakline-schoder/Documents/Github.nosync/Data")
+load("7-CAMFigure.RData")
+Onto_1d_CAM<-Onto_1d
+Onto_3d_CAM<-Onto_3d
+load("5-MicrogliaFigures.RData")
+```
+
+
+# 1d All Microglia 
+```{r}
+library(rrvgo)
+Onto_1d_BP<-Onto_1d[Onto_1d$Group=="Biological Process",]
+simMatrix <- calculateSimMatrix(Onto_1d_BP$GO.ID,
+                                orgdb="org.Mm.eg.db",
+                                ont="BP",
+                                method="Rel")
+scores <- setNames(-log10(Onto_1d_BP$PVal_Fis), Onto_1d_BP$GO.ID)
+reducedTerms <- reduceSimMatrix(simMatrix,
+                                scores,
+                                threshold=0.7,
+                                orgdb="org.Mm.eg.db")
+heatmapPlot(simMatrix,
+            reducedTerms,
+            annotateParent=TRUE,
+            annotationLabel="parentTerm",
+            fontsize=6)
+scatterPlot(simMatrix, reducedTerms)
+treemapPlot(reducedTerms)
+wordcloudPlot(reducedTerms, min.freq=1, colors="black")
+```
+# 3d all microglia
+```{r}
+Onto_3d_BP<-Onto_3d[Onto_3d$Group=="Biological Process",]
+simMatrix <- calculateSimMatrix(Onto_3d_BP$GO.ID,
+                                orgdb="org.Mm.eg.db",
+                                ont="BP",
+                                method="Rel")
+scores <- setNames(-log10(Onto_3d_BP$PVal_Fis), Onto_3d_BP$GO.ID)
+names(scores)<-Onto_3d_BP$GO.ID
+reducedTerms <- reduceSimMatrix(simMatrix,
+                                threshold=0.7,
+                                orgdb="org.Mm.eg.db")
+heatmapPlot(simMatrix,
+            reducedTerms,
+            annotateParent=TRUE,
+            annotationLabel="parentTerm",
+            fontsize=6)
+scatterPlot(simMatrix, reducedTerms)
+treemapPlot(reducedTerms)
+wordcloudPlot(reducedTerms, min.freq=1, colors="black")
+```
+
+
+#1d DAM
+```{r}
+Filt_BP<-DAM_Onto_1d[DAM_Onto_1d$Group=="Biological Process",]
+simMatrix <- calculateSimMatrix(Filt_BP$GO.ID,
+                                orgdb="org.Mm.eg.db",
+                                ont="BP",
+                                method="Rel")
+scores <- setNames(-log10(Filt_BP$PVal_Fis), Filt_BP$GO.ID)
+names(scores)<-Filt_BP$GO.ID
+reducedTerms <- reduceSimMatrix(simMatrix,
+                                threshold=0.7,
+                                orgdb="org.Mm.eg.db")
+heatmapPlot(simMatrix,
+            reducedTerms,
+            annotateParent=TRUE,
+            annotationLabel="parentTerm",
+            fontsize=6)
+scatterPlot(simMatrix, reducedTerms)
+treemapPlot(reducedTerms)
+wordcloudPlot(reducedTerms, min.freq=1, colors="black")
+```
+
+#3d DAM
+```{r}
+Filt_BP<-DAM_Onto_3d[DAM_Onto_3d$Group=="Biological Process",]
+simMatrix <- calculateSimMatrix(Filt_BP$GO.ID,
+                                orgdb="org.Mm.eg.db",
+                                ont="BP",
+                                method="Rel")
+scores <- setNames(-log10(Filt_BP$PVal_Fis), Filt_BP$GO.ID)
+names(scores)<-Filt_BP$GO.ID
+reducedTerms <- reduceSimMatrix(simMatrix,
+                                threshold=0.7,
+                                orgdb="org.Mm.eg.db")
+heatmapPlot(simMatrix,
+            reducedTerms,
+            annotateParent=TRUE,
+            annotationLabel="parentTerm",
+            fontsize=6)
+scatterPlot(simMatrix, reducedTerms)
+treemapPlot(reducedTerms)
+wordcloudPlot(reducedTerms, min.freq=1, colors="black")
+```
+
+# 1d All CAM 
+```{r}
+Onto<-Onto_1d_CAM[Onto_1d_CAM$Group=="Biological Process",]
+simMatrix <- calculateSimMatrix(Onto$GO.ID,
+                                orgdb="org.Mm.eg.db",
+                                ont="BP",
+                                method="Rel")
+scores <- setNames(-log10(Onto$PVal_Fis), Onto$GO.ID)
+reducedTerms <- reduceSimMatrix(simMatrix,
+                                scores,
+                                threshold=0.7,
+                                orgdb="org.Mm.eg.db")
+heatmapPlot(simMatrix,
+            reducedTerms,
+            annotateParent=TRUE,
+            annotationLabel="parentTerm",
+            fontsize=6)
+scatterPlot(simMatrix, reducedTerms)
+treemapPlot(reducedTerms)
+wordcloudPlot(reducedTerms, min.freq=1, colors="black")
+```
+# 3d CAM
+```{r}
+Onto<-Onto_3d_CAM[Onto_3d_CAM$Group=="Biological Process",]
+simMatrix <- calculateSimMatrix(Onto$GO.ID,
+                                orgdb="org.Mm.eg.db",
+                                ont="BP",
+                                method="Rel")
+scores <- setNames(-log10(Onto$PVal_Fis), Onto$GO.ID)
+reducedTerms <- reduceSimMatrix(simMatrix,
+                                scores,
+                                threshold=0.7,
+                                orgdb="org.Mm.eg.db")
+heatmapPlot(simMatrix,
+            reducedTerms,
+            annotateParent=TRUE,
+            annotationLabel="parentTerm",
+            fontsize=6)
+scatterPlot(simMatrix, reducedTerms)
+treemapPlot(reducedTerms)
+wordcloudPlot(reducedTerms, min.freq=1, colors="black")
+```
+
