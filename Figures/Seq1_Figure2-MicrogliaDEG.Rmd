@@ -37,21 +37,12 @@ setwd("/Users/alinakline-schoder/Documents/Github.nosync/Data")
 load("3-AllCells.RData")
 load("5-MicrogliaFigures.RData")
 col_fun = colorRamp2(c(-2, 0, 2), c("blue", "#D3D3D3", "red"))
-
-th <- theme_bw() + theme(legend.background = element_rect(),
-                         plot.title = element_text(angle = 0, size = 10, vjust = 1), 
-                                         plot.caption = element_blank(), 
-                                         axis.text = element_text(angle = 0,
-                                                                  size = 6,
-                                                                  vjust = 0.5), legend.position = "none",
-                         axis.title = element_text(size=8),
-                         panel.grid.major = element_blank())
 ColorsAllClusters[!str_contains("Microglia",levels(Integrated$cluster_full),switch = T)]<-"gray"
 ColorsAllClusters[str_contains("Microglia",levels(Integrated$cluster_full),switch = T)]<-"red"
-MicrogliaClusterColors<-c("#b74f6f", "#46f33e", "#fe7dda", "#19a71f", "#fa1bfc", "#a7e831", "#8f68ff", "#769d31", "#c2aff0", "#ffe254", "#4a8bae", "#e45338", "#3dffc4")
 ```
 # Microglia Highlighted
 ```{r}
+MicrogliaClusterColors<-c("#4FB3AA","#E9D8A6","#CA6702","#057985","#AE2012", "#BFD5B2","#0A9396", "#FFE987", "#F7C244", "#F4E197", "#D56D02","#BB3E03","#94D2BD")
 Idents(Integrated)<-"cluster_full"
 Highlight<-DimPlot(Integrated,group.by = "cluster_full",cols=ColorsAllClusters,label=FALSE)+NoLegend()+
   theme(plot.title = element_blank(),
@@ -125,7 +116,7 @@ OntoPlot<-ggplot(OntoPlotdata,aes(x=Time,y=Term,color=-log(PVal_KS),size=PCT))+
 clustermarkers_AllTreatment$pct.dif<-clustermarkers_AllTreatment$pct.1-clustermarkers_AllTreatment$pct.2
 Genes2Plot<-clustermarkers_AllTreatment%>%
     group_by(cluster) %>%
-    top_n(n = 10, wt = pct.dif)
+    top_n(n = 15, wt = pct.dif)
 Genes2Plot<-unique(Genes2Plot$gene)
 Idents(Microglia)<-"Treatment"
 Sub<-subset(Microglia,downsample=1000)
@@ -232,7 +223,8 @@ BC1<-ggplot(tab,aes(x=Var2,y=Var1,fill=Freq_Norm))+geom_tile()+scale_fill_gradie
         axis.title.x = element_text(size=8),
         legend.box.margin = margin(0,0,-0.5,0,"cm"),
         axis.text.x = element_text(size=6,vjust=0.75,hjust=0.5),
-        axis.title.y = element_blank(),plot.margin = margin(-0.25,0.05,-0.25,0.25,"cm"),
+        axis.title.y = element_blank(),
+        plot.margin = margin(-0.25,0.05,-0.25,0.25,"cm"),
         legend.key.width = unit(0.3,"cm"))
 ```
 
@@ -272,10 +264,11 @@ Inset<-ggdraw(Dim + theme_half_open(12)+theme(plot.title = element_blank(),axis.
     c(0.75),
     c(0.35),
     size = 12)
-Left<-plot_grid(Inset,BC2,Feat,nrow=3,labels=c("a","b","c"),rel_heights = c(1,1,1))
-Phase<-plot_grid(HMPhase,BC1,nrow=1,align = "v",axis = "tb",rel_widths = c(1,1.25),labels = c("f","g"))
-Right<-plot_grid(OntoPlot,Phase,Blank,nrow=3,rel_heights = c(2,1,1.5),labels = c("e","","h"))
 
-Full<-plot_grid(Left,HM_Ready,Right,nrow=1,rel_widths = c(1,1.5,1.5),labels=c("","d",""))
+Left<-plot_grid(Inset,BC2,Feat,nrow=3,labels=c("a","c","d"),rel_heights = c(1,1,1))
+Phase<-plot_grid(HMPhase,BC1,nrow=1,align = "v",axis = "tb",rel_widths = c(1,1.25),labels = c("g","h"))
+Right<-plot_grid(OntoPlot,Phase,Blank,nrow=3,rel_heights = c(2.5,1,2),labels = c("f","","i"))
+
+Full<-plot_grid(Left,HM_Ready,Right,nrow=1,rel_widths = c(1,1.5,1.5),labels=c("","e",""))
 ggsave("Figure2-MicrogliaDEG.png",width = 8.5,height = 7,units = "in",bg="white")
 ```

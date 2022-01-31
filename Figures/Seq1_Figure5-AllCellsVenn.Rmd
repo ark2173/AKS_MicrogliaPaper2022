@@ -45,7 +45,7 @@ library(ggVennDiagram)
 
 ColorsTreatment<-c("#BD6B73","#CCAD8F","#81C3D7","#16425B")
 ColorsAllClusters<-c("#66C2A5","#FC8D62","#8DA0CB","#E78AC3","#C59797","#A6D854","#FFD92F","#BA95C7","#D3D942","#FFD92F","#B1A884","#BA95C7")
-setwd("F:/Data/Sequencing/SavedData")
+setwd("/Users/alinakline-schoder/Documents/Github.nosync/Data")
 load("7-CAMFigure.RData")
 load("5-MicrogliaFigures.RData")
 load("3-AllCells.RData")
@@ -57,35 +57,72 @@ CAM_3d<-Markers_3d
 ```
 # Loading Data 4 Venn
 ```{r}
-Microglia_1d_Up<-Microglia_1d[Microglia_1d$p_val_adj<0.05&Microglia_1d$avg_log2FC>0,]
-Microglia_1d_Down<-Microglia_1d[Microglia_1d$p_val_adj<0.05&Microglia_1d$avg_log2FC<0,]
+Microglia_1d_Up<-rownames(Microglia_1d[Microglia_1d$p_val_adj<0.05&Microglia_1d$avg_log2FC>0,])
+Microglia_1d_Down<-rownames(Microglia_1d[Microglia_1d$p_val_adj<0.05&Microglia_1d$avg_log2FC<0,])
+CAM_1d_Up<-rownames(CAM_1d[CAM_1d$p_val_adj<0.05&CAM_1d$avg_log2FC>0,])
+CAM_1d_Down<-rownames(CAM_1d[CAM_1d$p_val_adj<0.05&CAM_1d$avg_log2FC<0,])
+Microglia_3d_Up<-rownames(Microglia_3d[Microglia_3d$p_val_adj<0.05&Microglia_3d$avg_log2FC>0,])
+Microglia_3d_Down<-rownames(Microglia_3d[Microglia_3d$p_val_adj<0.05&Microglia_3d$avg_log2FC<0,])
+CAM_3d_Up<-rownames(CAM_3d[CAM_3d$p_val_adj<0.05&CAM_3d$avg_log2FC>0,])
+CAM_3d_Down<-rownames(CAM_3d[CAM_3d$p_val_adj<0.05&CAM_3d$avg_log2FC<0,])
 
-CAM_1d_Up<-CAM_1d[CAM_1d$p_val_adj<0.05&CAM_1d$avg_log2FC>0,]
-CAM_1d_Down<-CAM_1d[CAM_1d$p_val_adj<0.05&CAM_1d$avg_log2FC<0,]
+All_Up<-intersect(intersect(Microglia_1d_Up,Microglia_3d_Up),intersect(CAM_1d_Up,CAM_3d_Up))
+Just_Microglia_Up<-setdiff(intersect(Microglia_1d_Up,Microglia_3d_Up),c(CAM_1d_Up,CAM_3d_Up))
+Just_CAM_Up<-setdiff(intersect(CAM_1d_Up,CAM_3d_Up),c(Microglia_1d_Up,Microglia_3d_Up))
+Day1_Only_Up<-setdiff(intersect(CAM_1d_Up,Microglia_1d_Up),c(CAM_3d_Up,Microglia_3d_Up))
+Day3_Only_Up<-setdiff(intersect(CAM_3d_Up,Microglia_3d_Up),c(CAM_1d_Up,Microglia_1d_Up))
 
-Microglia_3d_Up<-Microglia_3d[Microglia_3d$p_val_adj<0.05&Microglia_3d$avg_log2FC>0,]
-Microglia_3d_Down<-Microglia_3d[Microglia_3d$p_val_adj<0.05&Microglia_3d$avg_log2FC<0,]
+All_Down<-intersect(intersect(Microglia_1d_Down,Microglia_3d_Down),intersect(CAM_1d_Down,CAM_3d_Down))
+Just_Microglia_Down<-setdiff(intersect(Microglia_1d_Down,Microglia_3d_Down),c(CAM_1d_Down,CAM_3d_Down))
+Just_CAM_Down<-setdiff(intersect(CAM_1d_Down,CAM_3d_Down),c(Microglia_1d_Down,Microglia_3d_Down))
+Day1_Only_Down<-setdiff(intersect(CAM_1d_Down,Microglia_1d_Down),c(CAM_3d_Down,Microglia_3d_Down))
+Day3_Only_Down<-setdiff(intersect(CAM_3d_Down,Microglia_3d_Down),c(CAM_1d_Down,Microglia_1d_Down))
 
-CAM_3d_Up<-CAM_3d[CAM_3d$p_val_adj<0.05&CAM_3d$avg_log2FC>0,]
-CAM_3d_Down<-CAM_3d[CAM_3d$p_val_adj<0.05&CAM_3d$avg_log2FC<0,]
 
-Microglia_1d_Up<-cbind(rownames(Microglia_1d_Up),"Microglia_1d_Up")
-Microglia_1d_Down<-cbind(rownames(Microglia_1d_Down),"Microglia_1d_Down")
-CAM_1d_Up<-cbind(rownames(CAM_1d_Up),"CAM_1d_Up")
-CAM_1d_Down<-cbind(rownames(CAM_1d_Down),"CAM_1d_Down")
-Microglia_3d_Up<-cbind(rownames(Microglia_3d_Up),"Microglia_3d_Up")
-Microglia_3d_Down<-cbind(rownames(Microglia_3d_Down),"Microglia_3d_Down")
-CAM_3d_Up<-cbind(rownames(CAM_3d_Up),"CAM_3d_Up")
-CAM_3d_Down<-cbind(rownames(CAM_3d_Down),"CAM_3d_Down")
+
 ```
+
+
+# Upset plot
+```{r}
+k<-as.data.frame(list_to_matrix(list(MG_1 = Microglia_1d_Up,
+        MG_3 = Microglia_3d_Up,
+        CAM_1 = CAM_1d_Up,
+        CAM_3 = CAM_3d_Up)))
+k$MG_total<-k$MG_1+k$MG_3
+k$CAM_total<-k$CAM_1+k$CAM_3
+k$Day_1<-k$CAM_1+k$MG_1
+k$Day_3<-k$CAM_3+k$MG_3
+k$Total<-k$MG_total+k$CAM_total
+
+k<-as.data.frame(list_to_matrix(list(MG_1 = Microglia_1d_Down,
+        MG_3 = Microglia_3d_Down,
+        CAM_1 = CAM_1d_Down,
+        CAM_3 = CAM_3d_Down)))
+k$MG_total<-k$MG_1+k$MG_3
+k$CAM_total<-k$CAM_1+k$CAM_3
+k$Day_1<-k$CAM_1+k$MG_1
+k$Day_3<-k$CAM_3+k$MG_3
+k$Total<-k$MG_total+k$CAM_total
+```
+
+
 
 
 # Venn Diag Up
 ```{r}
+Microglia_1d_Up<-cbind(Microglia_1d_Up,"Microglia_1d_Up")
+Microglia_1d_Down<-cbind(Microglia_1d_Down,"Microglia_1d_Down")
+CAM_1d_Up<-cbind(CAM_1d_Up,"CAM_1d_Up")
+CAM_1d_Down<-cbind(CAM_1d_Down,"CAM_1d_Down")
+Microglia_3d_Up<-cbind(Microglia_3d_Up,"Microglia_3d_Up")
+Microglia_3d_Down<-cbind(Microglia_3d_Down,"Microglia_3d_Down")
+CAM_3d_Up<-cbind(CAM_3d_Up,"CAM_3d_Up")
+CAM_3d_Down<-cbind(CAM_3d_Down,"CAM_3d_Down")
 tab<-rbind(Microglia_1d_Up,Microglia_3d_Up,CAM_1d_Up,CAM_3d_Up)
 colnames(tab)<-c("Gene","Treatment")
 v2 <- venneuler(data.frame(tab))
-v2$labels<-NA
+#v2$labels<-NA
 v2$centers[,"x"]<-(v2$centers[,"x"]-0.5)*-1+0.5
 
  plot(v2, cex.main = 1)
