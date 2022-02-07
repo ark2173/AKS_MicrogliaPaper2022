@@ -33,8 +33,8 @@ FACS <- FACS[FACS$Time!="120",]
 FACS <- FACS[FACS$Time!="672",]
 FACS$Time<-factor(FACS$Time)
 FACS$Time<-recode(FACS$Time,"0"="Naive",
-                          "24"="1d",
-                          "72"="3d")
+                          "24"="1d FUS-BBBO",
+                          "72"="3d FUS-BBBO")
 FACS$Treatment<-as.factor(FACS$Treatment)
 FACS$Group<-as.factor(FACS$Group)
 FACS$Phagocytes<-as.numeric(FACS$Phagocytes)
@@ -78,8 +78,8 @@ levels(df$Treatment_Broad)<-c("Control","Sham","FUS/MB","Sham")
 df$Treatment<-ordered(df$Treatment,levels=c("Control","MB","FUS","FUS/MB"))
 df$Time<-factor(df$Time)
 df$Time<-recode(df$Time,"0"="Control",
-                          "24"="1d",
-                          "72"="3d")
+                          "24"="1d FUS-BBBO",
+                          "72"="3d FUS-BBBO")
 
 df<-df[df$Treatment=="FUS/MB",]
 
@@ -173,12 +173,12 @@ AllStats<-rbind(SameTimeFinal,SameTreatmentFinal,ControlFinal)
 df$Treatment<-recode(df$Treatment,"Control"="Naive")
 df$Treatment_Broad<-recode(df$Treatment_Broad,"Control"="Naive")
 df$Treatment_Broad<-recode(df$Treatment_Broad,"FUS/MB"="FUS+MB")
-df$Treatment<-recode(df$Treatment,"FUS/MB"="BBBO")
+df$Treatment<-recode(df$Treatment,"FUS/MB"="FUS-BBBO")
 df$Treatment<-recode(df$Treatment,"MB"="MB Sham")
 df$Treatment<-recode(df$Treatment,"FUS"="FUS Sham")
 df$Time<-recode(df$Time,"Control"="Naive",
-                "72"="3d",
-                "24"="1d")
+                "72"="3d FUS-BBBO",
+                "24"="1d FUS-BBBO")
 
 
 Flow<-ggplot(df, aes(x = Time, y = Phagocytes))+

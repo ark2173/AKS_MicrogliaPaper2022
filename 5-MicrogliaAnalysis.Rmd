@@ -199,7 +199,7 @@ Onto_3d<-Onto_3d[Onto_3d$Significant>1,]
 ```{r}
 Idents(Microglia)<-"seurat_clusters"
 DefaultAssay(Microglia)<-"SCT"
-DAMMarkers<-FindMarkers(Microglia,ident.1 = "2",slot = "data")
+DAMMarkers<-FindMarkers(Microglia,ident.1 = "2",slot = "data",min.pct = 0,min.diff.pct = 0,logfc.threshold = 0)
 DAM<-subset(Microglia,idents="2")
 Idents(DAM)<-"Treatment"
 marks_1d <- FindMarkers(DAM,ident.1 = "1d BBBO",ident.2 = "Sham",only.pos=T,slot="data")
@@ -223,5 +223,13 @@ DAM_Onto_3d<-DAM_Onto_3d[DAM_Onto_3d$Significant>1,]
 # Saving for figures - Microglia DEG
 ```{r}
 setwd("F:/Data/Sequencing/SavedData")
-save(DAMMarkers,DAM_Onto_1d,DAM_Onto_3d,DAMMarkers,Onto_3d,Onto_1d,clustermarkers_AllTreatment,clustermarkers_3d,clustermarkers_1d,Microglia,file="5-MicrogliaFigures.RData")
+save(DAMMarkers,DAM_Onto_1d,DAM_Onto_3d,DAMMarkers,Onto_3d,Onto_1d,clustermarkers_AllTreatment,clustermarkers_3d,clustermarkers_1d,Microglia,marks_3d,marks_1d,file="5-MicrogliaFigures.RData")
 ```
+
+# Saving for sham figure
+```{r}
+Idents(Microglia)<-"Treatment_Specific"
+Mark_Shams<-FindAllMarkers(Microglia,only.pos = T)
+save(Mark_Shams,file="5-MicrogliaShamFigures.RData")
+```
+

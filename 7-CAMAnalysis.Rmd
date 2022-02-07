@@ -37,9 +37,6 @@ setwd("F:/Data/Sequencing/SavedData")
 load("6-CAM.RData")
 setwd("F:/Data/Sequencing/Files/")
 source("Ontology.R")
-DefaultAssay(CAM)<-"RNA"
-CAM<-ScaleData(CAM)
-
 ```
   
 # Clustering
@@ -169,9 +166,10 @@ Data_New_Sub<-Data_New[AssignnmentNew$ChosenSpecific!="G0",]
 # DEG between all treatment groups
 ```{r}
 Idents(CAM)<-"Treatment"
-CAM_Treatment_Markers<-FindAllMarkers(CAM,only.pos = T)
-Markers_1d <- FindMarkers(CAM,ident.1 = "1d BBBO", ident.2 = "Sham")
-Markers_3d <- FindMarkers(CAM,ident.1 = "3d BBBO", ident.2 = "Sham")
+DefaultAssay(CAM)<-"SCT"
+CAM_Treatment_Markers<-FindAllMarkers(CAM,only.pos = T,slot="data")
+Markers_1d <- FindMarkers(CAM,ident.1 = "1d BBBO", ident.2 = "Sham",slot="data")
+Markers_3d <- FindMarkers(CAM,ident.1 = "3d BBBO", ident.2 = "Sham",slot="data")
 ```
 
 ## Ontology search for 1d v sham and 3d v Sham

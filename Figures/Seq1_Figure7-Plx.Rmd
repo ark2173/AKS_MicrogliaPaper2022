@@ -75,7 +75,7 @@ library(dplyr)
 
 
 #Info<-Info[Info$Feed!="Repopulating",]
-CustomColors<-c("#a8a8a8","#006400")
+CustomColors<-c("#a8a8a8","#986fb5")
 CavitationDose$Group<-Info[CavitationDose$Mouse,]$Feed
 
 MRIs$Day.0.Norm<-MRIs$Day.0/MRIs$Day.0
