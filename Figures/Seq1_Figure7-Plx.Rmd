@@ -87,7 +87,7 @@ MRIs$Day.5.Norm<-MRIs$Day.5/MRIs$Day.0
 MRIs$Group<-Info[MRIs$Mouse,]$Feed
 MRIs$Feed<-recode(MRIs$Group,
                    "Repopulating"="Depletion")
-MRI0<-ggplot(MRIs,aes(x=Feed,y=Day.0,fill=Feed))+stat_summary(fun="mean",geom="bar")+stat_summary(geom="errorbar",width=0.2)+stat_compare_means(method="t.test",label="p.format",label.x.npc = 0.4,label.y.npc = 0.85,size=3)+ylab(bquote('Day 0 BBBO Volume '(mm^3)))+scale_fill_manual(values=CustomColors)+theme_bw()+theme(legend.position = "none")+theme(axis.title = element_text(size=8),plot.margin = margin(0.25,0.25,0.25,0.5,"cm"))+scale_y_continuous(limits=c(0,40),expand = c(0,0))
+MRI0<-ggplot(MRIs,aes(x=Feed,y=Day.0,fill=Feed))+geom_boxplot(color="black",aes(fill=Feed),outlier.colour = NA,outlier.fill = NA)+geom_dotplot(binaxis='y', stackdir='center',dotsize=0.5,fill="black",color="black")+stat_compare_means(method="t.test",label="p.format",label.x.npc = 0.4,label.y.npc = 0.85,size=3)+ylab(bquote('Day 0 BBBO Volume '(mm^3)))+scale_fill_manual(values=CustomColors)+theme_bw()+theme(legend.position = "none")+theme(axis.title = element_text(size=8),plot.margin = margin(0.25,0.25,0.25,0.5,"cm"))+scale_y_continuous(limits=c(0,40),expand = c(0,0))
 
 
 
@@ -100,14 +100,18 @@ MRIs_Long$name<-recode(MRIs_Long$name,
                        "Day.3.Norm"="Day 3",
                        "Day.4.Norm"="Day 4",
                        "Day.5.Norm"="Day 5")
-MRIs_Long$Group<-factor(MRIs_Long$Group,levels=c("Control","Repopulating","Depletion"))
-A1<-ggplot(MRIs_Long,aes(x=name,y=value,color=Group))+stat_summary(geom="errorbar",position=position_dodge(width=0.75))+stat_compare_means(method="t.test",size=3,label="p.format",show.legend = FALSE)+stat_summary(fun="mean",geom="point",position=position_dodge(width=0.75))+scale_color_manual(values=CustomColors)+theme_bw()+ylab("Opening Volume (Relative to Day 0)")+xlab("Days after treatment")+theme(legend.position = c(0.85,0.8),legend.box.background = element_rect(color="black",linetype = "solid",fill="white"),legend.background = element_blank(),legend.title = element_blank())
+MRIs_Long$Group<-factor(MRIs_Long$Group,levels=c("Control","Depletion"))
+A1<-ggplot(MRIs_Long,aes(x=name,y=value,color=Group,fill=Group))+geom_boxplot(color="black",aes(fill=Group),outlier.colour = NA,outlier.fill = NA)+
+  geom_dotplot(binaxis='y', stackdir='center',dotsize=0.5,position=position_dodge(width=0.75),color="black")+
+  stat_compare_means(method="t.test",size=3,label="p.format",show.legend = FALSE)+
+  scale_fill_manual(values=CustomColors)+
+  scale_color_manual(values=CustomColors)+theme_bw()+ylab("Opening Volume (Relative to Day 0)")+xlab("Days after treatment")+theme(legend.position = c(0.85,0.8),legend.box.background = element_rect(color="black",linetype = "solid",fill="white"),legend.background = element_blank(),legend.title = element_blank())
 
 
 
 MRIs<-MRIs[MRIs$Group!="Repopulating",]
 MRIs_Long<-pivot_longer(MRIs,cols = c("Day.1","Day.2","Day.3","Day.4","Day.5"))
-A2<-ggplot(MRIs_Long,aes(x=name,y=value,color=Group))+stat_summary(geom="errorbar",position=position_dodge(width=0.75))+stat_compare_means(method="t.test",size=3,label="p.format",show.legend = FALSE)+stat_summary(fun="mean",geom="point",position=position_dodge(width=0.75))+scale_color_manual(values=CustomColors)+theme_bw()+ylab("Opening Volume (Relative to Day 0)")+xlab("Days after treatment")+theme(legend.position = c(0.85,0.8),legend.box.background = element_rect(color="black",linetype = "solid",fill="white"),legend.background = element_blank(),legend.title = element_blank())
+A2<-ggplot(MRIs_Long,aes(x=name,y=value,color=Group))+geom_boxplot(color="black",aes(fill=Group),outlier.colour = NA,outlier.fill = NA)+geom_dotplot(binaxis='y', stackdir='center',dotsize=0.5,fill="black",color="black")+stat_compare_means(method="t.test",size=3,label="p.format",show.legend = FALSE)+scale_color_manual(values=CustomColors)+theme_bw()+ylab("Opening Volume (Relative to Day 0)")+xlab("Days after treatment")+theme(legend.position = c(0.85,0.8),legend.box.background = element_rect(color="black",linetype = "solid",fill="white"),legend.background = element_blank(),legend.title = element_blank())
 
 
 
@@ -115,8 +119,7 @@ A2<-ggplot(MRIs_Long,aes(x=name,y=value,color=Group))+stat_summary(geom="errorba
 # Day 0
 Info<-Info[!is.na(Info$Days.Open),]
 Info_New<-Info[Info$Feed!="Repopulating",]
-
-C<-ggplot(Info_New,aes(x=Feed,y=Days.Open,fill=Feed)) + stat_summary(fun="mean",geom="bar")+stat_summary(geom="errorbar",width=0.2)+scale_fill_manual(values=CustomColors)+theme_bw()+stat_compare_means(method="t.test",label="p.format",label.x.npc = 0.4,label.y.npc = 0.85,size=3)+ylab("Duration of BBB Opening (Days)")+theme(legend.position="none")+scale_y_continuous(limits = c(0,8),expand = c(0,0))+theme(axis.title= element_text(size=8),plot.margin = margin(0.25,0.25,0.25,0.5,"cm"))
+C<-ggplot(Info_New,aes(x=Feed,y=Days.Open,color=Feed,fill=Feed))+geom_boxplot(color="black")+geom_dotplot(binaxis='y', stackdir='center',dotsize=0.5,fill="black",color="black",outlier.colour = NA,outlier.fill = NA)+scale_fill_manual(values=CustomColors)+scale_color_manual(values=CustomColors)+theme_bw()+stat_compare_means(method="t.test",label="p.format",label.x.npc = 0.4,label.y.npc = 0.85,size=3)+ylab("Duration of BBB Opening (Days)")+theme(legend.position="none")+scale_y_continuous(limits = c(0,8),expand = c(0,0))+theme(axis.title= element_text(size=8),plot.margin = margin(0.25,0.25,0.25,0.5,"cm"))
 ```
 
 # Putting it together
