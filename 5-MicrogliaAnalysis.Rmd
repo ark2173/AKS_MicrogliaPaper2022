@@ -169,8 +169,8 @@ Data_New_Sub<-Data_New[AssignnmentNew$ChosenSpecific!="G0",]
 ```{r}
 Idents(Microglia)<-"Treatment"
 DefaultAssay(Microglia)<-"SCT"
-clustermarkers_1d <- FindMarkers(Microglia, ident.1 = "1d BBBO",ident.2 = "Sham",slot = "data")
-clustermarkers_3d <- FindMarkers(Microglia, ident.1 = "3d BBBO",ident.2 = "Sham",slot = "data")
+clustermarkers_1d <- FindMarkers(Microglia, ident.1 = "1d BBBO",ident.2 = "Sham",slot = "data",min.pct = 0,min.diff.pct = 0,logfc.threshold = 0)
+clustermarkers_3d <- FindMarkers(Microglia, ident.1 = "3d BBBO",ident.2 = "Sham",slot = "data",min.pct = 0,min.diff.pct = 0,logfc.threshold = 0)
 clustermarkers_AllTreatment <- FindAllMarkers(Microglia, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25,slot="data")
 ```
 ## Ontology search for 1d v sham and 3d v Sham
@@ -178,6 +178,8 @@ clustermarkers_AllTreatment <- FindAllMarkers(Microglia, only.pos = TRUE, min.pc
 library(org.Mm.eg.db)
 library(topGO)
 clustermarkers_1d_filt<-clustermarkers_1d[clustermarkers_1d$p_val_adj<0.05,]
+clustermarkers_1d_filt<-clustermarkers_1d_filt[clustermarkers_1d_filt$avg_log2FC>0,]
+
 Onto_1d<-GO_Search(Microglia,clustermarkers_1d_filt)
 Onto_1d$PCT<-(Onto_1d$Significant/Onto_1d$Annotated)*100
 Onto_1d<-Onto_1d[Onto_1d$Annotated>10,]
@@ -185,6 +187,8 @@ Onto_1d<-Onto_1d[Onto_1d$Significant>1,]
 
 
 clustermarkers_3d_filt<-clustermarkers_3d[clustermarkers_3d$p_val_adj<0.05,]
+clustermarkers_3d_filt<-clustermarkers_3d_filt[clustermarkers_3d_filt$avg_log2FC>0,]
+
 Onto_3d<-GO_Search(Microglia,clustermarkers_3d_filt)
 Onto_3d$PCT<-(Onto_3d$Significant/Onto_3d$Annotated)*100
 Onto_3d<-Onto_3d[Onto_3d$Annotated>10,]
@@ -199,19 +203,19 @@ DefaultAssay(Microglia)<-"SCT"
 DAMMarkers<-FindMarkers(Microglia,ident.1 = "2",slot = "data",min.pct = 0,min.diff.pct = 0,logfc.threshold = 0)
 DAM<-subset(Microglia,idents="2")
 Idents(DAM)<-"Treatment"
-marks_1d <- FindMarkers(DAM,ident.1 = "1d BBBO",ident.2 = "Sham",only.pos=T,slot="data")
-marks_3d <- FindMarkers(DAM,ident.1 = "3d BBBO",ident.2 = "Sham",only.pos=T,slot="data")
-marks_1d<-marks_1d[marks_1d$avg_log2FC>0,]
-marks_1d<-marks_1d[marks_1d$p_val_adj<0.05,]
+marks_1d <- FindMarkers(DAM,ident.1 = "1d BBBO",ident.2 = "Sham",only.pos=F,slot="data",logfc.threshold = 0.1)
+marks_3d <- FindMarkers(DAM,ident.1 = "3d BBBO",ident.2 = "Sham",only.pos=F,slot="data",logfc.threshold = 0.1)
+marks_1d_pos<-marks_1d[marks_1d$avg_log2FC>0,]
+marks_1d_pos<-marks_1d_pos[marks_1d_pos$p_val_adj<0.05,]
 library(topGO)
-DAM_Onto_1d<-GO_Search(DAM,marks_1d)
+DAM_Onto_1d<-GO_Search(DAM,marks_1d_pos)
 DAM_Onto_1d$PCT<-(DAM_Onto_1d$Significant/DAM_Onto_1d$Annotated)*100
 DAM_Onto_1d<-DAM_Onto_1d[DAM_Onto_1d$Annotated>10,]
 DAM_Onto_1d<-DAM_Onto_1d[DAM_Onto_1d$Significant>1,]
 
-marks_3d<-marks_3d[marks_3d$avg_log2FC>0,]
-marks_3d<-marks_3d[marks_3d$p_val_adj<0.05,]
-DAM_Onto_3d<-GO_Search(DAM,marks_3d)
+marks_3d_pos<-marks_3d[marks_3d$avg_log2FC>0,]
+marks_3d_pos<-marks_3d_pos[marks_3d_pos$p_val_adj<0.05,]
+DAM_Onto_3d<-GO_Search(DAM,marks_3d_pos)
 DAM_Onto_3d$PCT<-(DAM_Onto_3d$Significant/DAM_Onto_3d$Annotated)*100
 DAM_Onto_3d<-DAM_Onto_3d[DAM_Onto_3d$Annotated>10,]
 DAM_Onto_3d<-DAM_Onto_3d[DAM_Onto_3d$Significant>1,]

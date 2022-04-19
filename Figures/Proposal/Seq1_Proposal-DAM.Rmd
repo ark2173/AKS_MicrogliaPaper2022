@@ -1,0 +1,224 @@
+---
+title: "Figure 2"
+author: Alina Kline-Schoder
+date: | 
+      | Started on 06/01/2021
+      | Compiled: `r format(Sys.Date(), "%B %d, %Y")`
+output:
+  github_document:
+    toc: yes
+---
+# Figure 3 - Microglia Clustering and DAM
+
+```{r message = FALSE, echo = FALSE}
+rm(list = ls())
+library(cowplot)
+library(Seurat)
+require(ggdendro)
+require(Rmisc)
+library(Matrix)
+library(MASS)
+library(xtable)
+library(Matrix.utils)
+library(reshape2)
+library(BiocManager)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(rstatix)
+library(ggpmisc)
+library(gridExtra)
+library(here)
+library(circlize)
+library(sjmisc)
+library(ggrepel)
+#setwd("F:/Data/Sequencing/SavedData")
+ColorsAllClusters<-c("#66C2A5","#FC8D62","#8DA0CB","#E78AC3","#C59797","#A6D854","#FFD92F","#BA95C7","#D3D942","#FFD92F","#B1A884","#BA95C7")
+ColorsTreatment<-c("#FFFFFF","#A3A3A3","#75A0B2","#205F83")
+names(ColorsTreatment)<-c("Naive","Sham","1d BBBO","3d BBBO")
+LinesTreatment<-c("#A3A3A3",ColorsTreatment[2:4])
+names(LinesTreatment)<-c("Naive","Sham","1d BBBO","3d BBBO")
+setwd("F:/Data/Sequencing/SavedData")
+#setwd("/Users/alinakline-schoder/Documents/Github.nosync/Data")
+load("3-AllCells.RData")
+load("5-MicrogliaFigures.RData")
+#load("DAMMarkers_new.RData")
+col_fun = colorRamp2(c(-2, 0, 2), c("blue", "#D3D3D3", "red"))
+
+MicrogliaClusterColors<-c("#4FB3AA","#E9D8A6","#CA6702","#057985","#AE2012", "#BFD5B2","#0A9396", "#FFE987", "#F7C244", "#F4E197", "#D56D02","#BB3E03","#94D2BD")
+names(MicrogliaClusterColors)<-levels(Microglia$seurat_clusters)
+MicrogliaClusterColors[levels(Microglia$seurat_clusters)!="2"]<-"gray"
+#ColorsAllClusters[str_contains("Microglia",levels(Integrated$cluster_full),switch = T)]<-"red"
+```
+
+# DAM Highlighted
+```{r}
+Idents(Integrated)<-"cluster_full"
+Dim1<-DimPlot(Microglia,group.by = "seurat_clusters",cols=MicrogliaClusterColors,label=FALSE)+NoLegend()+
+  theme(plot.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        axis.line = element_blank(),
+        axis.title = element_blank(),
+        plot.margin = margin(0.5,0.5,0.5,0.5,"cm"),
+        panel.spacing = unit(0,"cm"))
+```
+
+
+# volcano 
+```{r}
+toptable <- as.data.frame(DAMMarkers)
+toptable$lab <- rownames(DAMMarkers)
+Genes<-c("Cd9","Lpl","Spp1","Cst7","Apoe","Tmem119","P2ry12","Ctsb","Cd63","Cx3cr1","Lgals1")
+toptable$color<-"red"
+toptable[toptable$p_val_adj>0.05,]$color<-"black"
+toptable[abs(toptable$avg_log2FC)<0.5,]$color<-"black"
+toptable[!(toptable$lab %in% Genes),]$lab<-NA
+toptable$xvals <- toptable[['avg_log2FC']]
+toptable$yvals <- -log10(toptable[['p_val_adj']])
+xlab<-bquote(~Log[2] ~ "fold change")
+ylab<-bquote(~-Log[10] ~ italic(P))
+DAMVolc<-ggplot(toptable, aes(x = xvals, y = yvals)) + 
+  geom_point(na.rm = TRUE,size=0.1,color=toptable$color) + 
+  xlab(xlab) + 
+  ylab(ylab) + 
+  geom_label_repel(aes(label=lab),size=3,label.padding = unit(0.1, "lines"),max.overlaps = 100) +
+  theme(panel.grid = element_blank(),
+        plot.margin=margin(0.5,0.5,0.5,0.5,"cm"),
+        panel.background = element_blank(),
+        axis.line = element_line(size=0.1),
+        plot.title = element_blank(),
+        axis.text = element_text(size=8),
+        axis.title = element_text(size=10))+scale_y_continuous(expand=c(0,0))
+```
+
+# percentage of microglia
+```{r}
+tab<-as.data.frame(table(Microglia$orig.ident,Microglia$Treatment,Microglia$seurat_clusters))
+tab<-tab[tab$Var3=="2",]
+Tota<-as.data.frame(table(Microglia$orig.ident,Microglia$Treatment))
+Tota$Full<-paste(Tota$Var1,Tota$Var2)
+tab$Full<-paste(tab$Var1,tab$Var2)
+rownames(Tota)<-Tota$Full
+tab$Total<-Tota[tab$Full,]$Freq
+tab<-tab[tab$Total>0,]
+tab$Freq_Adj<-tab$Freq/tab$Total
+Percent<-ggplot(tab,aes(x=Var2,y=Freq_Adj*100))+geom_boxplot(color="black",aes(fill=Var2))+geom_point(color="black")+scale_fill_manual(values=ColorsTreatment)+theme(legend.position="none",
+        plot.margin=margin(0.5,0.5,0.5,0.5,"cm"),
+        panel.background = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_text(size=8),
+        legend.key.size = unit(0.75,"line"),
+        axis.line = element_line(size=0.1),
+        axis.text = element_text(size=8),
+        axis.title = element_text(size=10),
+        axis.title.x = element_blank(),
+        panel.grid = element_blank())+stat_compare_means(method="anova",label.y = 55,size=3) + scale_y_continuous(expand = c(0,0),limits = c(0,60))+ylab("DAM (% of microglia)")
+```
+
+
+# Volcano
+```{r}
+toptable <- as.data.frame(marks_1d)
+toptable$lab <- rownames(marks_1d)
+Genes<-c("Ccl4","Fos","Spp1","P2ry12","Cx3cr1","Ccl12")
+toptable[!(toptable$lab %in% Genes),]$lab<-NA
+toptable$xvals <- toptable[['avg_log2FC']]
+toptable$yvals <- -log10(toptable[['p_val_adj']])
+xlab<-bquote(~Log[2] ~ "fold change")
+ylab<-bquote(~-Log[10] ~ italic(P))
+Volcano24<-ggplot(toptable, aes(x = xvals, y = yvals)) + geom_point(na.rm = TRUE,size=0.1,color=unname(ColorsTreatment[3]))+ labs(title = '1d BBBO v Sham')+xlab(xlab) + ylab(ylab) + geom_label_repel(aes(label=lab),size=3,label.padding = unit(0.1, "lines"))+theme(
+  panel.grid = element_blank(),
+  plot.margin=margin(0.5,0.5,0.5,0.5,"cm"),
+  panel.background = element_blank(),
+  plot.title = element_text(size=10),
+  axis.line = element_line(size=0.1),
+  axis.text = element_text(size=8),
+  axis.title = element_text(size=10))+scale_y_continuous(expand=c(0,0))
+
+toptable <- as.data.frame(clustermarkers_3d)
+toptable$lab <- rownames(clustermarkers_3d)
+Genes<-c("Ccl12","Csf1r","Cx3cr1","Spp1","Top2a")
+toptable[!(toptable$lab %in% Genes),]$lab<-NA
+toptable$xvals <- toptable[['avg_log2FC']]
+toptable$yvals <- -log10(toptable[['p_val_adj']])
+xlab<-bquote(~Log[2] ~ "fold change")
+ylab<-bquote(~-Log[10] ~ italic(P))
+Volcano72<-ggplot(toptable, aes(x = xvals, y = yvals)) + geom_point(na.rm = TRUE,size=0.1,fill=unname(ColorsTreatment[4]))+ labs(title = '3d BBBO v Sham')+xlab(xlab) + ylab(ylab) + geom_label_repel(aes(label=lab),size=3,label.padding = unit(0.1, "lines"))+theme(
+  panel.grid = element_blank(),
+  plot.title = element_text(size=10),
+  plot.margin=margin(0.5,0.5,0.5,0.5,"cm"),
+  panel.background = element_blank(),
+  axis.line = element_line(size=0.1),
+  axis.text = element_text(size=8),
+  axis.title = element_text(size=10))+scale_y_continuous(expand=c(0,0))
+```
+
+# Ontology searches
+```{r}
+library(viridis)
+BP<-c("glial cell development",
+         "gliogenesis",
+         "macrophage migration",
+         "phagocytic vesicle",
+         "lysosome",
+         "response to stimulus",
+         "cell chemotaxis",
+         "regulation of cell cycle",
+         "immune response",
+         "exocytic vesicle",
+         "recycling endosome")
+DAM_Onto_1d$Time<-"1d"
+DAM_Onto_3d$Time<-"3d"
+Onto_All<-rbind(DAM_Onto_1d,DAM_Onto_3d)
+OntoPlotdata<-Onto_All[Onto_All$Term %in% BP,]
+OntoPlotdata$Time<-as.factor(OntoPlotdata$Time)
+KSLab<-bquote(~-Log[10] ~ italic(P[KS]))
+FisLab<-bquote(italic(P[Fis]))
+library(scales) 
+OntoPlotdata$Group<-recode(OntoPlotdata$Group,"Biological Process"="BP",
+                           "Cellular Component"="CC",
+                           "Molecular Function"="MF")
+OntoPlot<-ggplot(OntoPlotdata,aes(x=Time,y=Term,color=-log(PVal_KS),size=PCT))+
+  facet_grid(Group~.,scales = "free",space = "free")+
+  geom_point()+
+  theme_minimal()+scale_color_viridis()+scale_color_viridis(guide=guide_colorbar(title=KSLab,title.position = "top"))+ scale_size_continuous(guide=guide_legend(title="Genes (%)",title.position = "top"),breaks = c(20,40,60),limits=c(20,60),range = c(0.5,4))+
+  theme(legend.position = "top",
+        axis.text.y = element_text(size=6),
+        legend.direction = "horizontal",
+        legend.box = "horizontal",
+        legend.key.height = unit(2,"mm"),
+        legend.key.size = unit(3,"mm"),
+        legend.spacing = unit(0,"mm"),
+        plot.margin = margin(0.5,0.5,0.5,0.5,"cm"),
+        axis.title = element_blank(),
+        legend.spacing.x = unit(0,"cm"),
+        legend.box.spacing = margin(-0.5,0.5,0.25,0,"cm"),
+        legend.text = element_text(size=6),
+        legend.title = element_text(size=8),
+        strip.text.y = element_text(size=10))
+```
+
+
+# Putting it all together
+```{r}
+library(cowplot)
+library(grid)
+TopLeft<-plot_grid(Dim1,Percent,nrow=1,labels = c("A","B"),rel_widths = c(1,1))
+BottomLeft<-plot_grid(DAMVolc,OntoPlot,nrow=1,labels = c("D","E"),align = "h",axis="tb")
+Volcanos<-plot_grid(Volcano24,Volcano72,nrow = 1,labels = c("A","B"))
+
+Full<-plot_grid(plot_grid(TopLeft,BottomLeft,nrow=2),Volcanos,nrow=1,rel_widths = c(2,1),labels=c("","C"))
+ggsave("Proposal-DAM.png",width = 8.5,height = 5,units = "in",bg="white")
+
+Top<-plot_grid(Dim1,DAMVolc,Percent,nrow=1,labels = c("A","B","C"),align = "h",axis = "tb")
+ggsave("Proposal-PPT-DAM.png",width = 8.5,height = 3,units = "in",bg="white")
+
+A<-plot_grid(Volcanos,OntoPlot+theme(legend.position = "bottom",axis.text.y=element_text(size=10)),nrow=2,labels = c("","C"),rel_heights = c(1,1.25))
+ggsave("Proposal-PPT-DAMDEG.png",width = 4,height = 5,units = "in",bg="white")
+```
+

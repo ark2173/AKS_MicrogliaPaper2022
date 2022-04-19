@@ -1,0 +1,103 @@
+---
+title: "All Cells"
+author: Alina Kline-Schoder
+date: | 
+      | Started on 06/01/2021
+      | Compiled: `r format(Sys.Date(), "%B %d, %Y")`
+output:
+  github_document:
+    toc: yes
+---
+
+
+```{r message = FALSE, echo = FALSE}
+rm(list = ls())
+library(cowplot)
+library(Seurat)
+require(ggdendro)
+require(Rmisc)
+library(Matrix)
+library(MASS)
+library(xtable)
+library(Matrix.utils)
+library(reshape2)
+library(BiocManager)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(tidyverse)
+library(ggsignif)
+library(broom)
+library(rstatix)
+library(ggpmisc)
+library(gridExtra)
+library(ComplexHeatmap)
+library(RColorBrewer)
+
+ColorsTreatment<-c("#BD6B73","#CCAD8F","#81C3D7","#16425B")
+ColorsAllClusters<-c("#66C2A5","#FC8D62","#8DA0CB","#E78AC3","#C59797","#A6D854","#FFD92F","#BA95C7","#D3D942","#FFD92F","#B1A884","#BA95C7")
+setwd("F:/Data/Sequencing/SavedData")
+load("3-AllCells.RData")
+```
+
+# Dimplot
+```{r}
+Dim<-DimPlot(Integrated,label=TRUE,group.by = "cluster_number",cols = ColorsAllClusters[1:12],label.box = TRUE)+NoLegend()+scale_color_manual(values = ColorsAllClusters[1:12],labels=levels(Integrated$cluster_full))+theme(
+  axis.ticks = element_blank(),
+  axis.text = element_blank(),
+  legend.position = c(0.01,0.225),
+  plot.title = element_blank(),
+  axis.title = element_text(size=8),
+  legend.text = element_text(size=8),
+  legend.key.size = unit(1,"mm"))+scale_y_continuous(limits=c(-13,10.5))+scale_x_continuous(limits=c(-20,7))
+```
+
+# Violin Plot
+```{r}
+Microglia<-data.frame(Genes=c("Tmem119","Sparc","Hexb","Cx3cr1"),Type="Microglia")
+CAM<-data.frame(Genes=c("Tgfbi","Ms4a7","H2-Aa","Cd44"),Type="CAM")
+Neutrophils<-data.frame(Genes=c("Camp","S100a9","S100a8"),Type="Neutrophils")
+Mono<-data.frame(Genes=c("Ace","S100a4","Ccr2","Napsa"),Type="Monocytes")
+NSCs<-data.frame(Genes=c("Sox2","Enpp2","Ttr"),Type="NSCs")
+Genes<-rbind(CAM,Microglia,Neutrophils,Mono,NSCs)
+Genes$Type<-factor(Genes$Type,levels=c("Microglia","CAM","Neutrophils","Monocytes","NSCs"))
+DefaultAssay(Integrated)<-"RNA"
+data<-DotPlot(Integrated,group.by = "cluster_partial",features = Genes$Genes)
+data<-data$data
+data$gene.type<-Genes[data$features.plot,]$Type
+data$cell.type<-gsub('[[:digit:]]+', '', data$id)
+data$cell.type<-gsub(' ', '', data$cell.type)
+data$cell.type<-factor(data$cell.type,levels=c("Microglia","CAM","Neutrophils","Monocytes","NSCs"))
+
+Violin<-ggplot(data,aes(x=id,y=features.plot))+
+  geom_rect(xmin=as.numeric(data$id)-.5,xmax=as.numeric(data$id)+.5,ymin=-Inf,ymax=Inf,fill=ColorsAllClusters[data$id],alpha=0.025) +
+  geom_point(aes(color=avg.exp.scaled,size=pct.exp)) +
+  geom_tile(aes(y=0,x=id),fill=ColorsAllClusters[data$id],height=0.5) + 
+  facet_grid(gene.type~cell.type, space = "free",scales = "free",shrink=FALSE) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=45,size=6,vjust=1,hjust=1),
+        plot.background = element_blank(),
+        strip.background = element_rect(fill=NA,color=NA),
+        axis.title.y = element_blank(),
+        axis.line = element_blank(),
+        strip.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.box = "horizontal",
+        legend.text = element_text(size=6),
+        legend.title = element_text(size=6),
+        legend.key.height = unit(0.75,"mm"),
+        strip.text = element_text(size=7),
+        plot.margin = margin(0.5,0,0,0,"cm"),
+        panel.grid = element_blank()) + 
+  scale_color_gradient(low = "blue",high="red",guide=guide_colorbar(title.position = "top",title="Expression"))+
+  scale_size_continuous(limits=c(1,100),breaks = c(1,50,100),guide=guide_legend(title.position = "top",title = "Cells Expressing (%)"),range=c(0.1,3))
+```
+
+```{r}
+plot_grid(Dim,Violin,labels=c("A","B"),rel_widths = c(1.25,1))
+ggsave("Proposal-PPT-AllCells.png",width = 9,height = 4,units = "in",bg="white")
+```
+
