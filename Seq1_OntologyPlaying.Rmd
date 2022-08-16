@@ -28,8 +28,8 @@ library(tidyr)
 library(dplyr)
 library(sjmisc)
 library(viridis)
-#setwd("F:/Data/Sequencing/SavedData")
-setwd("/Users/alinakline-schoder/Documents/Github.nosync/Data")
+setwd("F:/Data/Sequencing/SavedData")
+#setwd("/Users/alinakline-schoder/Documents/Github.nosync/Data")
 load("7-CAMFigure.RData")
 Onto_1d_CAM<-Onto_1d
 Onto_3d_CAM<-Onto_3d
@@ -138,14 +138,9 @@ reducedTerms <- reduceSimMatrix(simMatrix,
                                 scores,
                                 threshold=0.7,
                                 orgdb="org.Mm.eg.db")
-heatmapPlot(simMatrix,
-            reducedTerms,
-            annotateParent=TRUE,
-            annotationLabel="parentTerm",
-            fontsize=6)
 scatterPlot(simMatrix, reducedTerms)
 treemapPlot(reducedTerms)
-wordcloudPlot(reducedTerms, min.freq=1, colors="black")
+WordCloud1d<-wordcloudPlot(reducedTerms, min.freq=1, colors="black")
 ```
 # 3d CAM
 ```{r}
@@ -166,6 +161,14 @@ heatmapPlot(simMatrix,
             fontsize=6)
 scatterPlot(simMatrix, reducedTerms)
 treemapPlot(reducedTerms)
-wordcloudPlot(reducedTerms, min.freq=1, colors="black")
+WordCloud3d<-wordcloudPlot(reducedTerms, min.freq=1, colors="black")
 ```
+# word clouds
+```{r}
+library("ggwordcloud")
+my_string_split2 <- as.data.frame(table(scan(text = reducedTerms$term, what = " ")))  # Apply scan function
+my_string_split2<-my_string_split2[!my_string_split2$Var1%in%c("of","to","and")]
+ggplot(reducedTerms,aes(label=term,size=size))+geom_text_wordcloud()+theme_minimal()
+```
+
 

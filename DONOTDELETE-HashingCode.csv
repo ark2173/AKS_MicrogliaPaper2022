@@ -1,0 +1,8 @@
+,EA003.Broad,EA003.Specific,EA004.Broad,EA004.Specific,EA005.Broad,EA005.Specific
+TotalSeqB-Hashtag1,Naive,Naive,Naive,Naive,3d BBBO,3d BBBO
+TotalSeqB-Hashtag2,1d BBBO,1d BBBO,Sham,1d FUS Sham,Sham,3d FUS Sham
+TotalSeqB-Hashtag3,Sham,1d FUS Sham,Sham,1d MB Sham,Sham,3d MB Sham
+TotalSeqB-Hashtag4,Sham,1d MB Sham,1d BBBO,1d BBBO,Sham,1d FUS Sham
+TotalSeqB-Hashtag5,Sham,3d MB Sham,Sham,3d MB Sham,Sham,1d MB Sham
+TotalSeqB-Hashtag6,Sham,3d FUS Sham,Sham,3d FUS Sham,Naive,Naive
+TotalSeqB-Hashtag7,3d BBBO,3d BBBO,3d BBBO,3d BBBO,,
